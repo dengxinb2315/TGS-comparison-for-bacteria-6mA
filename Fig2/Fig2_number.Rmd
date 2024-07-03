@@ -1,0 +1,54 @@
+```{R}
+num <- read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/call_numbers.csv")
+num$number <- as.numeric(num$number)
+ggplot(num,aes(x = Tool,y = number)) + 
+  geom_bar(aes(fill = Type),stat = "identity",position = "dodge") +
+  scale_fill_manual(values = c("#9BBFCF","#98B85D","#C6AEBA","#DFD6A6")) +
+  xlab("")+
+  ylab("")+
+  ggtitle("Predicted sites") +
+  theme_bw()
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/tool_num_percentage.pdf",width = 9, height = 3)
+
+library(gg.gap)
+num$X.3 <- as.numeric(num$X.3)
+p <- ggplot(num,aes(x = Tool,y = 1-X.3)) + 
+  geom_bar(aes(fill = Type),stat = "identity",position = "dodge") +
+  scale_fill_manual(values = c("#9BBFCF","#98B85D","#C6AEBA","#DFD6A6"),
+                    breaks = c("WT","MU","WGA","LOST")) +
+  xlab("")+
+  ylab("")+
+ # ggtitle("Missed sites") +
+  theme_bw()
+
+gg.gap(plot=p,
+       segments=c(0.02,0.45),
+       ylim=c(0,0.5)
+       )
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/tool_missed_num.pdf",width = 9, height = 4)
+```
+
+```{R}
+num1 <- subset(num, Tool == "dorado" |Tool == "mcaller" | Tool =="nhammerhead" | Tool =="tombo_denovo")
+ggplot(num1,aes(x = detail,y = number, fill = Type, width = 0.7)) + 
+  geom_bar(stat = "identity",position = "dodge",) +
+  scale_fill_manual(values = c("#98B85D","#C6AEBA","#DFD6A6")) +
+  xlab("")+
+  ylab("")+
+  theme_void() +
+  geom_text(aes(label = number), position = position_nudge(y = 1), color = "black", size = 4, angle = 45) +
+  theme(legend.position = "none")
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/num1.pdf",width = 5, height = 4)
+
+num2 <- subset(num, Tool != "dorado" & Tool != "mcaller" & Tool !="nhammerhead" & Tool !="tombo_denovo")
+ggplot(num2,aes(x = detail,y = number, fill = Type, width = 0.7)) + 
+  geom_bar(stat = "identity",position = "dodge") +
+  scale_fill_manual(values = c("#9BBFCF","#98B85D","#C6AEBA","#DFD6A6")) +
+  xlab("")+
+  ylab("")+
+  theme_void() +
+  geom_text(aes(label = number), position = position_nudge(y = 1), color = "black", size = 4, angle = 45) 
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/num2.pdf",width = 6, height = 4)
+```
