@@ -9,9 +9,14 @@ Oxford Nanopore's basecall model is updated frequently, we recommend using the l
 
 ## Code available
 
+System requirement: Ubuntu 16.04
+R version: 4.3.1
+
 **Notes:** We highly recommend creating a separate conda environment to manage the following software tools.
 
 ### Envs
+
+The install time should be around 30 mins.
 
 Mandatory software:
 
@@ -42,6 +47,9 @@ Nanopore tools:
 | **Dorado**  | 0.5.0  |conda|
 | **mCaller**  | 0.0.5.8  |Pypi|
 
+
+R requried softwares are listed in [R_Sessioninfo.txt](figures_code/R_Sessioninfo.txt)
+
 ### Structure
 
 ```mermaid
@@ -59,8 +67,8 @@ graph TD
     e(Tombo)  --> l(level_comp)
     e(Tombo)  --> m(de novo)
 	B(main_code) --> n(Rmd)
-	n(Rmd) --> o(_Psph_)
-	n(Rmd) --> p(_Pst_)
+	n(Rmd) --> o(Psph)
+	n(Rmd) --> p(Pst)
 	n(Rmd) --> q(Optimization)
 	n(Rmd) --> r(downsample)
     C(figures_code)  --> s(fig1_QC)
@@ -96,9 +104,12 @@ For example in [psph_wt.Rmd](main_code/psph_wt.Rmd).
 2. The codes of assigned values distribution plot are provided to visulaize the outputs (SF. 1c).
 3. Meme-Streme for motif discovery. Plot codes are provided (Fig. 6, SF. 2-4).
 4. _Psph_ motifs' features were characterized (Fig. 2b).
-5. **Sites comparison** is one of the core sections of our study, including "5-mer shift", "compare tools with A sites", and "compare tools with ATCG sites". Codes are provided and detailed description can be found in Methods section. Codes for plotting F1 score change curve, PRC, and ROC curve are provided.
-6. Outliers analysis.
-7. Detailed comparison of Nanopore and SMRT results.
+5. **Sites comparison** is one of the core sections of our study, including "5-mer shift", "compare tools with A sites", and "compare tools with ATCG sites".
+   Codes are provided and detailed description can be found in Methods section.
+   Codes for plotting F1 score change curve, PRC, and ROC curve are provided.
+   The expecting running time for each tool's comparison should be within 60 mins.
+7. Outliers analysis.
+8. Detailed comparison of Nanopore and SMRT results.
 
 
 ### figures_code
