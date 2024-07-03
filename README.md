@@ -39,11 +39,22 @@ while giraffe will help to calculate the estimated features such as Q score and 
 2. Python scripts in [Figure_1](Fig1) will help to calculate the yield info and merge all sample's feature file and plot the distribution.
 
 ### Run all methods
-1. Following the workflow, we executed all the commands for m6A modification detection tools found in [Main_shell](main_code/Nanopore_tools_code)
+Following the workflow, we executed all the commands for m6A modification detection tools found in [Main_shell](main_code/Nanopore_tools_code)
 
+Besides, we provided a script called [read_tombo.py](main_code/Nanopore_tools_code/read_tombo.py) to merge the result from `tombo text_output` and output a **bed** file
+
+    Usage: read_tombo.py [-h] [-t TOMBO_RESULT] [--ref REF] [--output OUTPUT]
+    optional arguments:                                                      
+      -h, --help            show this help message and exit                  
+      -t TOMBO_RESULT, --tombo_result TOMBO_RESULT                       
+                            suffix of tombo result                           
+      --ref REF             reference path                                   
+      --output OUTPUT       output path   
 
 ### Motif and site analysis
 
 ### Outliers analysis
 
 ### Showcase and application
+After obtaining many modification sites, 
+we used [nanoCEM](https://github.com/lrslab/nanoCEM) to showcase the analysis focusing on current and alignment feature, the commands are saved in [nanocem.sh](SF5/nanocem.sh)
