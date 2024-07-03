@@ -36,7 +36,7 @@ Optional software:
 
 1. For each sample, we run the commands in [QC.sh](main_code/QC.sh). The basecalled **fastq** file and the alignment result (**bam** file) with the reference can be collected,
 while giraffe will help to calculate the estimated features such as Q score and read length.
-2. Python scripts in [Figure_1](Fig1) will help to calculate the yield info and merge all sample's feature file and plot the distribution.
+2. Python scripts in [Figure_1](figures_code/Fig1) will help to calculate the yield info and merge all sample's feature file and plot the distribution.
 
 ### Run all methods
 Following the workflow, we executed all the commands for m6A modification detection tools found in [Main_shell](main_code/Nanopore_tools_code)
@@ -57,4 +57,4 @@ Besides, we provided a script called [read_tombo.py](main_code/Nanopore_tools_co
 
 ### Showcase and application
 After obtaining many modification sites, 
-we used [nanoCEM](https://github.com/lrslab/nanoCEM) to showcase the analysis focusing on current and alignment feature, the commands are saved in [nanocem.sh](SF5/nanocem.sh)
+we used [nanoCEM](https://github.com/lrslab/nanoCEM) to showcase the analysis focusing on current and alignment feature, the commands are saved in [nanocem.sh](figures_code/SF5/nanocem.sh)
