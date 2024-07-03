@@ -5,7 +5,7 @@ This GitHub repository contains all the custom scripts and shell commands used i
 ## Graphic abstract
 ![abstract](readme_fig/workflow.png)
 ## Data available
-Because Oxford Nanopore's basecall model is updated frequently, we recommend using the latest basecaller model for re-calling. All raw signal files are uploaded to the NCBI (BIOPROJECT:[PRJNA1119015](https://ncbi.nlm.nih.gov/bioproject/?term=PRJNA1119015)).
+Oxford Nanopore's basecall model is updated frequently, we recommend using the latest basecaller model for re-calling. All raw signal files are uploaded to the NCBI (BIOPROJECT:[PRJNA1119015](https://ncbi.nlm.nih.gov/bioproject/?term=PRJNA1119015)).
 
 ## Code available
 
