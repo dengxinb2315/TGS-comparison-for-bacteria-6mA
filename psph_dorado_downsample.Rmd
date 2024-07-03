@@ -1,0 +1,336 @@
+# Dorado down sample
+
+## Load Data of WT
+```{R}
+rm(list=ls())
+library(tidyr)
+library(data.table)
+library(dplyr)
+
+
+## defeine a fuction to normalize the OriginalValue
+## yi = (xi - min(x)) / (max(x) - min(x))
+get.normalized <- function(df){
+  eps <- 1e-6
+  df$Value <- (df$OriginalValue - min(df$OriginalValue))/(max(df$OriginalValue) - min(df$OriginalValue)) * (1 - 2 * eps) + eps
+  return(df)
+}
+
+get.chromosome.name <- function(df){
+  df$Chromosome <- gsub("refseq\\|NC_005773\\.3\\|chromosome","chromosome",df$Chromosome)
+  df$Chromosome <- gsub("refseq\\|NC_007275\\.1\\|small","small.plasmid",df$Chromosome)
+  df$Chromosome <- gsub("refseq\\|NC_007274\\.1\\|large","large.plasmid",df$Chromosome)
+  return(df)
+}
+
+# This one for mCaller
+get.chromosome.name2 <- function(df){
+  df$Chromosome <- gsub("small","small.plasmid",df$Chromosome)
+  df$Chromosome <- gsub("large","large.plasmid",df$Chromosome)
+  return(df)
+}
+
+# Dorado+Modkit
+Dorado1 = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/dorado.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/dorado.bed", sep = " ", header = F)
+Dorado1 <- cbind(Dorado1[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado1) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado1 <- arrange(Dorado1, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+
+Dorado2 = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/37_6mA.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/37_6mA.bed", sep = " ", header = F)
+Dorado2 <- cbind(Dorado2[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado2) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado2 <- arrange(Dorado2, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+Dorado3 = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/18_6mA.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/18_6mA.bed", sep = " ", header = F)
+Dorado3 <- cbind(Dorado3[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado3) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado3 <- arrange(Dorado3, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+Dorado4 = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/9_6mA.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/9_6mA.bed", sep = " ", header = F)
+Dorado4 <- cbind(Dorado4[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado4) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado4 <- arrange(Dorado4, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+Dorado5 = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/4_6mA.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/4_6mA.bed", sep = " ", header = F)
+Dorado5 <- cbind(Dorado5[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado5) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado5 <- arrange(Dorado5, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+Dorado6 = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/2_6mA.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/downS/2_6mA.bed", sep = " ", header = F)
+Dorado6 <- cbind(Dorado6[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado6) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado6 <- arrange(Dorado6, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+```
+
+## Distribution
+```{R}
+library(ggplot2)
+library(hrbrthemes)
+dS.name <- c("Dorado1","Dorado2","Dorado3","Dorado4","Dorado5","Dorado6")
+
+dS <- rbind(data.frame(Category = '450× Coverage', as.data.frame(Dorado1)),
+            data.frame(Category = '200× Coverage', as.data.frame(Dorado2)),
+            data.frame(Category = '100× Coverage', as.data.frame(Dorado3)),
+            data.frame(Category = '50× Coverage', as.data.frame(Dorado4)),
+            data.frame(Category = '20× Coverage', as.data.frame(Dorado5)),
+            data.frame(Category = '10× Coverage', as.data.frame(Dorado6)))
+                      
+ggplot(dS, aes(x=Value, fill=Category)) +
+      geom_density(alpha=0.6,color = NA) +
+      scale_fill_manual(values = c("#4E659B","#8A8DBF","#B8A8CF","#E7BCC6","#FDCF9E","#EFA484"),
+                        breaks = c("450× Coverage", "200× Coverage", "100× Coverage", "50× Coverage","20× Coverage","10× Coverage")) +
+      theme_bw() +
+      ylab("Density") +
+      xlab("Assigned Fraction Probability") +
+      theme(
+        legend.position = c(0.8,0.8),
+        legend.title = element_blank())
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F6_ds/distribution.pdf",width = 5, height = 4.8)
+```
+
+##Radar
+```{R}
+# library(fmsb)
+bestf1_OV <- 0.8544
+dS_filtered <- subset(dS, OriginalValue >= bestf1_OV)
+
+# num <- t(as.data.frame(table(dS_filtered$Category)))
+# colnames(num) <- num[1,]
+# num <- num[-1,]
+# num <- t(as.data.frame(num))
+# 
+# # add Max and Min
+# num <- rbind(rep(41000,10) , rep(7000,10) , num)
+# rownames(num) <- c("1","2","3")
+# num <- as.data.frame(num)
+# num <- sapply(num, as.numeric)
+# num <- as.data.frame(num)
+
+# radarchart(num, 
+#     #custom polygon
+#     pcol=rgb(0.2,0.5,0.5,0.9) , pfcol=rgb(0.2,0.5,0.5,0.5) , plwd=4 , 
+#     #custom the grid
+#     cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,20,5), cglwd=0.8,
+#     #custom labels
+#     vlcex=0.8 
+#     )
+
+num <- as.data.frame(table(dS_filtered$Category))
+
+ggplot(num, aes(x = Var1, y = Freq , fill = Var1)) +
+  geom_bar(stat = 'identity', alpha = 0.6) +
+  coord_polar() +
+  scale_fill_manual(values = c("#4E659B","#8A8DBF","#B8A8CF","#E7BCC6","#FDCF9E","#EFA484"),
+                        breaks = c("450× Coverage", "200× Coverage", "100× Coverage", "50× Coverage","20× Coverage","10× Coverage")) +
+  theme_minimal() +
+  ylim(-5000,41000) +
+  labs(x = "", y = "")+
+  theme(legend.position = "none") +
+  geom_text(aes(label = Freq), position = position_nudge(y = 1), color = "black", size = 3)
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F6_ds/num.pdf",width = 5, height = 4)
+
+```
+
+```{R}
+library(ellipse)
+library(RColorBrewer)
+
+dS$all <- paste0(dS$Chromosome,dS$Position,dS$Strand)
+co <- subset(dS, Category == "450× Coverage")
+# co$"450× Coverage" <- "1"
+co <- co[,c(8,7)]
+colnames(co) <- c("all", "450× Coverage")
+
+dS.name <- c("200× Coverage", "100× Coverage", "50× Coverage","20× Coverage","10× Coverage")
+for (i in dS.name){
+  print(i)
+  df1 <- subset(dS, Category == i)[,c(7,8)]
+  df2 <- merge(co,df1, by="all", all.x=T)
+  colnames(df2)[colnames(df2) == "Value"] <- i
+  co <- df2
+}
+co[is.na(co)] <- 0
+
+write.csv(co,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/ds_co.csv")
+
+rownames(co) <- co[,1]
+co <- co[,-1]
+co <- sapply(co, as.numeric)
+
+data <- cor(co)
+
+# Build a Pannel of 100 colors with Rcolor Brewer
+my_colors <- brewer.pal(5, "Spectral")
+my_colors <- colorRampPalette(my_colors)(100)
+
+# Order the correlation matrix
+ord <- order(data[1, ])
+data_ord <- data[ord, ord]
+plotcorr(data_ord , col=my_colors[data_ord*50+50] , mar=c(1,1,1,1),
+         numbers = F ,
+         type = c("full"), diag = T)
+
+
+dS_filtered$all <- paste0(dS_filtered$Chromosome,dS_filtered$Position,dS_filtered$Strand)
+dS.name <- c("200× Coverage", "100× Coverage", "50× Coverage","20× Coverage","10× Coverage")
+x <- list("450× Coverage" = dS_filtered[dS_filtered$Category == "450× Coverage",]$all,
+          "200× Coverage" = dS_filtered[dS_filtered$Category == "200× Coverage",]$all,
+          "100× Coverage" = dS_filtered[dS_filtered$Category == "100× Coverage",]$all,
+          "50× Coverage" = dS_filtered[dS_filtered$Category == "50× Coverage",]$all,
+          "20× Coverage" = dS_filtered[dS_filtered$Category == "20× Coverage",]$all,
+          "10× Coverage" = dS_filtered[dS_filtered$Category == "10× Coverage",]$all)
+
+ggVennDiagram(x, label_alpha = 0, edge_size = 0.3, label = "none") +
+    scale_fill_gradient(low="#C6AEBA",high = "#AC667E") 
+#    theme(legend.position = "none")
+
+a <- Reduce(intersect, list(
+    dS_filtered[dS_filtered$Category == "450× Coverage",]$all,
+    dS_filtered[dS_filtered$Category == "200× Coverage",]$all,
+    dS_filtered[dS_filtered$Category == "100× Coverage",]$all,
+    dS_filtered[dS_filtered$Category == "50× Coverage",]$all,
+    dS_filtered[dS_filtered$Category == "20× Coverage",]$all,
+    dS_filtered[dS_filtered$Category == "10× Coverage",]$all
+))
+
+b <- intersect(a, paste0(SMRT$Chromosome,SMRT$Position,SMRT$Strand))
+
+x <- list(a,
+          paste0(SMRT$Chromosome,SMRT$Position,SMRT$Strand))
+ggVennDiagram(x, label_alpha = 0, edge_size = 0.3) +
+    scale_fill_gradient(low="white",high = "#C6AEBA") 
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F5_ds/venn_SMRT.pdf",width = 6, height = 5)
+```
+
+
+```{R}
+trimed.df.ds <- data.frame()
+dS.name <- c("Dorado1","Dorado2","Dorado3","Dorado4","Dorado5","Dorado6")
+
+for (name in dS.name){
+  print(name)
+  df <- get(name)
+  # single mode
+  trimed_temp <-  get.trim.df.A(df, SMRT)
+  trimed.df.ds <- rbind(trimed.df.ds, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  
+  rm(trimed_temp)
+  trimed.df[is.na(trimed.df)] <- 0
+}
+  
+
+write.csv(trimed.df.ds,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448Ads.trimed.df0424.csv")
+
+
+
+library(gridExtra)
+library(patchwork)
+
+trimed.df.ds <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448Ads.trimed.df0424.csv")
+
+p <- ggplot(trimed.df.ds, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  theme_light() +
+  xlab("A sites") +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#4E659B","#8A8DBF","#B8A8CF","#E7BCC6","#FDCF9E","#EFA484"))
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/legend2.pdf",width = 5, height = 7)
+
+pp <- ggplot(trimed.df.ds, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.5) +
+#  geom_point(size = 0.2, color = "grey") +
+  theme_bw() +
+  theme(legend.position="none")+
+  scale_color_manual(values = c("#4E659B","#8A8DBF","#B8A8CF","#E7BCC6","#FDCF9E","#EFA484")) +
+    xlim(0,20000)+
+  xlab("")+
+  ylab("")
+p1 <- p + inset_element(pp, left = 0.3, bottom = 0.3, right = 0.95, top = 0.95) 
+p1
+
+p2<-ggplot(trimed.df.ds, aes(x=Recall, y=Precision, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  theme_light() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#4E659B","#8A8DBF","#B8A8CF","#E7BCC6","#FDCF9E","#EFA484"))
+
+p3<-ggplot(trimed.df.ds, aes(x=FPR, y=TPR, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  theme_light() +
+    theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="bottom"
+  )+
+  scale_color_manual(values = c("#4E659B","#8A8DBF","#B8A8CF","#E7BCC6","#FDCF9E","#EFA484"))
+
+plot <- p1+p2+p3
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F6_ds/1448Ads.pdf", plot, width = 15, height = 5.5)
+
+
+AUC_ds <- data.frame()
+trimed.df<-trimed.df.ds
+
+for (i in dS.name){
+  area_PR <- get.auc(i, "Recall", "Precision")
+  area_ROC <- get.auc(i, "FPR", "TPR")
+  AUC_ds <- rbind(AUC_ds, data.frame(set=k,name = i, PRC = round(area_PR[["value"]],3), ROC = round(area_ROC[["value"]],3)))
+}
+
+write.csv(AUC_ds,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/ds_AUC.csv")
+```
+
