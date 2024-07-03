@@ -15,14 +15,15 @@ Because Oxford Nanopore's basecall model is updated frequently, we recommend usi
 
 Mandatory software:
 
-| Name         | Version | Source|
-|:-------------|:--------|:--------|
-| **samtools** | v1.17   |conda|
-| **minimap2** | v2.17   |conda|
-| **nanoCEM**  | 0.0.5.8 |Pypi|
-| **plotnine** | 0.9.1   |Pypi|
+| Name         | Version  | Source|
+|:-------------|:---------|:--------|
+| **samtools** | v1.17    |conda|
+| **minimap2** | v2.17    |conda|
+| **python**   | \>=3.9.2 |conda|
+| **nanoCEM**  | 0.0.5.8  |Pypi|
+| **plotnine** | 0.9.1    |Pypi|
 
-Optional
+Optional software:
 
 
 | Name            | Version | Source|
@@ -31,3 +32,12 @@ Optional
 | **nanopolish**  | v1.14.1 |conda|
 | **harmmerhead** | 0.1.3   |Pypi|
 
+### Figure 1
+
+1. For each sample, we run the commands in [QC.py](main_code/QC.sh). The basecalled **fastq** file and the alignment result (**bam** file) with the reference can be collected,
+while giraffe will help to calculate the estimated features such as Q score and read length.
+2. Python scripts in [Figure_1](Fig1) will help to calculate the yield info and merge all sample's feature file and plot the distribution.
+
+### Figure 2
+1. Following the workflow, we executed all the commands for m6A modification detection tools found in [Main_shell](main_code/Nanopore_tools_code)
+2. 
