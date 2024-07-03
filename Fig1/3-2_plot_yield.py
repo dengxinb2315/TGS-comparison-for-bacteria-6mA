@@ -7,7 +7,7 @@ plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 
 
-input_file =  'aligned_num.csv'
+input_file =  'sample_data/aligned_num.csv'
 df = pd.read_csv(input_file)
 
 name_list = ['1448A_WT',
