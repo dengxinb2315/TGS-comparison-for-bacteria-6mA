@@ -21,18 +21,33 @@ Mandatory software:
 | **minimap2** | v2.17    |conda|
 | **python**   | \>=3.9.2 |conda|
 | **nanoCEM**  | 0.0.5.8  |Pypi|
-| **plotnine** | 0.9.1    |Pypi|
+| **h5py**  | 3.8.0  |Pypi|
+| **pod5**  | 0.2.4  |Pypi|
+| **Samtools**  | 1.17  |conda|
+| **SeqKit**  | 2.6.1  |conda|
+| **ont-fast5-api**  | 4.1.1  |Pypi|
+| **slow5tools**  | 1.2.0  |Pypi|
+| **memes**  | 1.8.0  |R|
+| **Giraffe**  | 0.1.0.14  |Pypi|
 
-Optional software:
+
+Nanopore tools:
 
 
 | Name            | Version | Source|
 |:----------------|:--------|:--------|
-| **tombo**       | v1.5    |conda|
-| **nanopolish**  | v1.14.1 |conda|
-| **harmmerhead** | 0.1.3   |Pypi|
+| **Tombo**       | v1.5    |conda|
+| **Nanopolish**  | v1.14.1 |conda|
+| **Hammerhead** | 0.1.3   |Pypi|
+| **Dorado**  | 0.5.0  |conda|
+| **mCaller**  | 0.0.5.8  |Pypi|
 
-### QC analysis
+### main_code
+Here are all the shell commands used to obtain the bacterial 6mA predictions using all seven Nanopore tools.
+Additionally, for Tombo, we developed "read_tombo.py" for further processing the raw outputs.
+
+
+####QC analysis
 
 1. For each sample, we run the commands in [QC.sh](main_code/QC.sh). The basecalled **fastq** file and the alignment result (**bam** file) with the reference can be collected,
 while giraffe will help to calculate the estimated features such as Q score and read length.
