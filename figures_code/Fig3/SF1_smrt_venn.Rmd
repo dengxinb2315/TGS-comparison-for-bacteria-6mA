@@ -1,0 +1,112 @@
+explain the ground truth
+```{R}
+library(ggplot2)
+
+bed <- SMRT_WT
+
+bed1 <- subset(bed, V1 == "refseq|NC_005773.3|chromosome")
+ggplot(bed1,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#CFCFE5") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/a.pdf", width = 20, height = 1)
+
+bed2 <- subset(bed, V1 == "refseq|NC_007275.1|small")
+ggplot(bed2,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#CFCFE5") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/WT_small.pdf", width = 5, height = 1)
+
+bed3 <- subset(bed, V1 == "refseq|NC_007274.1|large")
+ggplot(bed3,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#CFCFE5") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/WT_large.pdf", width = 5, height = 1)
+
+
+bed <- SMRT_KO
+
+bed1 <- subset(bed, V1 == "refseq|NC_005773.3|chromosome")
+ggplot(bed1,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#DBB6AC") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/KO_chr.pdf", width = 20, height = 1)
+
+bed2 <- subset(bed, V1 == "refseq|NC_007275.1|small")
+ggplot(bed2,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#DBB6AC") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/KO_small.pdf", width = 5, height = 1)
+
+bed3 <- subset(bed, V1 == "refseq|NC_007274.1|large")
+ggplot(bed3,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#DBB6AC") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/KO_large.pdf", width = 5, height = 1)
+
+
+bed <- SMRT_LOST
+
+bed1 <- subset(bed, V1 == "refseq|NC_005773.3|chromosome")
+ggplot(bed1,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#66A4C6") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/LOST_chr.pdf", width = 20, height = 1)
+
+bed2 <- subset(bed, V1 == "refseq|NC_007275.1|small")
+ggplot(bed2,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#66A4C6") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/LOST_small.pdf", width = 5, height = 1)
+
+bed3 <- subset(bed, V1 == "refseq|NC_007274.1|large")
+ggplot(bed3,aes(x=V5))+
+  geom_histogram(alpha = 0.6, binwidth = 10, color = "#66A4C6") +
+  ylim(0,1) +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/LOST_large.pdf", width = 5, height = 1)
+
+```
+
+
+```{R}
+library(ggVennDiagram)
+# SMRT_WT <- SMRT_WT[,c(1,5,7,6)]
+# colnames(SMRT_WT) <- c("Chromosome","Position","Strand","OriginalValue")
+# SMRT_WT <- get.chromosome.name(SMRT_WT)
+# 
+# SMRT_LOST <- SMRT_LOST[,c(1,5,7,6)]
+# colnames(SMRT_LOST) <- c("Chromosome","Position","Strand","OriginalValue")
+# SMRT_LOST <- get.chromosome.name(SMRT_LOST)
+# 
+# SMRT_KO <- SMRT_KO[,c(1,5,7,6)]
+# colnames(SMRT_KO) <- c("Chromosome","Position","Strand","OriginalValue")
+# SMRT_KO <- get.chromosome.name(SMRT_KO)
+
+x <- list(WT = paste0(SMRT_WT$V1,SMRT_WT$V5,SMRT_WT$V7),
+          KO = paste0(SMRT_KO$V1,SMRT_KO$V5,SMRT_KO$V7),
+          LOST = paste0(SMRT_LOST$V1,SMRT_LOST$V5,SMRT_LOST$V7))
+ggVennDiagram(x, label_alpha = 0, edge_size = 0.3, label_percent_digit = 2) +
+  scale_fill_gradient(low="white",high = "#C6AEBA") +
+  theme(legend.position = "none")
+ggsave("/Users/lubeifang/Desktop/venn1.pdf", width = 5, height = 5)
+
+motif1 <- MotifT1_peak
+motif2 <- MotifT2_peak
+x <- list(WT = paste0(SMRT_WT$V1,SMRT_WT$V5,SMRT_WT$V7),
+          KO = paste0(SMRT_KO$V1,SMRT_KO$V5,SMRT_KO$V7),
+          motifT1 = paste0(motif1$V1,motif1$V3,motif1$V6),
+          motifT2 = paste0(motif2$V1,motif2$V3,motif2$V6))
+ggVennDiagram(x, label_alpha = 0, edge_size = 0.3,label_percent_digit = 2) +
+  scale_fill_gradient(low="white",high = "#C6AEBA") +
+  theme(legend.position = "none")
+ggsave("/Users/lubeifang/Desktop/venn1.pdf", width = 5, height = 5)
+
+```

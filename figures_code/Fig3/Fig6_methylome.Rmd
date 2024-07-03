@@ -1,0 +1,297 @@
+
+Distribution of 6mA sites
+```{R}
+get.bed.format <- function(set){
+  set$Start <- set$Position - 1
+  set <- set[,c(1,4,2)]
+  colnames(set) <- c("chr", "start", "end")
+  set$start <- as.integer(set$start)
+  # set$end <- as.numeric(set$end)
+  set$value1 <- as.integer(1)
+  set$value2 <- as.integer(1)
+  return(set)
+}
+
+set1 <- DC3000_motif
+set1 <- get.bed.format(set1)
+set2 <- DC3000_dorado[DC3000_dorado$Rank <= 5454,][,c(1,2,3)]
+set2 <- get.bed.format(set2)
+set3 <- anti_join(DC3000_dorado[DC3000_dorado$Rank <= 15407,], DC3000_dorado_WGA[DC3000_dorado_WGA$OriginalValue >= 0.8836,], by = c("Position", "Chromosome", "Strand"))[,c(1,2,3)]
+set3 <- get.bed.format(set3)
+
+DfoundinDorado <- inner_join(set1,set2, by = c("chr", "end"))[,c(1,2,3,4)]
+DfoundinOptimized <- inner_join(set1,set3, by = c("chr", "end"))[,c(1,2,3,4)]
+
+DnotfoundinDorado <- anti_join(set1,set2, by = c("chr", "end"))[,c(1,2,3,4)]
+DnotfoundinOptimized <- anti_join(set1,set3, by = c("chr", "end"))[,c(1,2,3,4)]
+
+
+set4 <- Motifs
+set4 <- get.bed.format(set4)
+set5 <- Dorado[Dorado$Rank <= 5454,][,c(1,2,3)]
+set5 <- get.bed.format(set5)
+set6 <- anti_join(Dorado[Dorado$Rank <= 14305,], Dorado_WGA[Dorado_WGA$OriginalValue >= 0.7368
+,], by = c("Position", "Chromosome", "Strand"))[,c(1,2,3)]
+set6 <- get.bed.format(set6)
+
+foundinDorado <- inner_join(set4,set5, by = c("chr", "end"))[,c(1,2,3,4)]
+foundinOptimized <- inner_join(set4,set6, by = c("chr", "end"))[,c(1,2,3,4)]
+
+notfoundinDorado <- anti_join(set4,set5, by = c("chr", "end"))[,c(1,2,3,4)]
+notfoundinOptimized <- anti_join(set4,set6, by = c("chr", "end"))[,c(1,2,3,4)]
+
+```
+
+
+
+compare motif found in Dorado and Optimized
+```{R}
+library(circlize)
+
+ps <- "/Users/lubeifang/Desktop/Benchmark/Figure/methylome/1448A_length.txt"
+cytoband.df <- read.table(ps, colClasses = c("character", "numeric", "numeric", "character", "character"), sep = "\t")
+
+pdf(file = "/Users/lubeifang/Desktop/Benchmark/Figure/methylome/psph_found.pdf", height = 5, width = 4)
+
+circos.par(gap.after = 5)
+circos.initializeWithIdeogram(cytoband.df, labels.cex = 0.4)
+text(0, 0.1, "Psph", cex = 1.1, font = 3)
+text(0, -0.05, "Methylation sites map (obtained from Dorado)", cex = 0.5)
+
+
+circos.genomicTrack(foundinDorado, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.2, col = "#9BBFCF", type = "h", ...)
+                    })
+
+circos.genomicTrack(foundinOptimized, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.15, col = "#DFD6A6", type = "h", ...)
+                    })
+
+dev.off()
+```
+```{R}
+pdf(file = "/Users/lubeifang/Desktop/Benchmark/Figure/methylome/psph_notfound.pdf", height = 5, width = 4)
+
+circos.par(gap.after = 5)
+circos.initializeWithIdeogram(cytoband.df, labels.cex = 0.4)
+text(0, 0.1, "Psph_1448A", cex = 1, font = 3)
+text(0, -0.05, "Missed Methylation sites map (obtained from Dorado)", cex = 0.5)
+
+
+circos.genomicTrack(notfoundinDorado, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.2, col = "#9BBFCF", type = "h", ...)
+                    })
+
+circos.genomicTrack(notfoundinOptimized, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.15, col = "#DFD6A6", type = "h", ...)
+                    })
+
+dev.off()
+
+```
+DC3000
+compare motif found in Dorado and Optimized
+```{R}
+library(circlize)
+
+dc3000 <- "/Users/lubeifang/Desktop/Benchmark/Figure/methylome/DC3000_length.txt"
+cytoband.df <- read.table(dc3000, colClasses = c("character", "numeric", "numeric", "character", "character"), sep = "\t")
+
+pdf(file = "/Users/lubeifang/Desktop/Benchmark/Figure/methylome/dc3000_found.pdf", height = 5, width = 4)
+
+circos.par(gap.after = 5)
+circos.initializeWithIdeogram(cytoband.df, labels.cex = 0.4)
+text(0, 0.1, "Pst", cex = 1.1, font = 3)
+text(0, -0.05, "Methylation sites map (obtained from Dorado)", cex = 0.5)
+
+
+circos.genomicTrack(DfoundinDorado, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.2, col = "#9BBFCF", type = "h", ...)
+                    })
+
+circos.genomicTrack(DfoundinOptimized, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.15, col = "#DFD6A6", type = "h", ...)
+                    })
+
+dev.off()
+
+
+pdf(file = "/Users/lubeifang/Desktop/Benchmark/Figure/methylome/dc3000_notfound.pdf", height = 5, width = 4)
+
+circos.par(gap.after = 5)
+circos.initializeWithIdeogram(cytoband.df, labels.cex = 0.4)
+text(0, 0.1, "Pst", cex = 1, font = 3)
+text(0, -0.05, "Missed Methylation sites map (obtained from Dorado)", cex = 0.5)
+
+
+circos.genomicTrack(DnotfoundinDorado, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.2, col = "#9BBFCF", type = "h", ...)
+                    })
+
+circos.genomicTrack(DnotfoundinOptimized, ylim = c(0, 1.1), track.height = mm_h(5),
+                    panel.fun = function(region, value, ...) {
+                      circos.genomicLines(region, value, lwd = 0.15, col = "#DFD6A6", type = "h", ...)
+                    })
+
+dev.off()
+
+```
+
+
+Analysis with features
+```{R}
+library(ChIPseeker)
+library(ChIPpeakAnno)
+library(clusterProfiler)
+require(GenomicFeatures)
+library(GenomicRanges)
+
+# load annotation
+ps_txdb <- makeTxDbFromGFF("/Users/lubeifang/Desktop/BIOTOOLS/ref/CHIPPEAKANNO/1448A_peak.gff")
+annoData <- toGRanges(ps_txdb, feature="gene")
+
+dc_txdb <- makeTxDbFromGFF("/Users/lubeifang/Desktop/BIOTOOLS/ref/CHIPPEAKANNO/DC3000.gff")
+dc_annoData <- toGRanges(dc_txdb, feature="gene")
+
+
+# psph
+anno_psph <- data.frame()
+for (i in c("foundinDorado", "foundinOptimized", "notfoundinDorado", "notfoundinOptimized")){
+  df <- get(i)
+  peak <- df[df$chr == "chromosome",]
+  peak_gr <- GRanges(seqnames="chr1",
+                   ranges=IRanges(start=as.numeric(as.matrix(peak[,2])),
+                                  end= as.numeric(as.matrix(peak[,3])),
+                                  names=as.matrix(as.matrix(peak[,1]))))
+  annotatedpeak <- annotatePeakInBatch(peak_gr, AnnotationData=annoData)
+  anno_psph = rbind(anno_psph,
+                    data.frame(name = i,as.data.frame(annotatedpeak)))
+}
+
+# DC3000
+anno_dc3k <- data.frame()
+for (i in c("DfoundinDorado", "DfoundinOptimized", "DnotfoundinDorado", "DnotfoundinOptimized")){
+  df <- get(i)
+  peak <- df[df$chr == "chromosome",]
+  peak_gr <- GRanges(seqnames="chr1",
+                   ranges=IRanges(start=as.numeric(as.matrix(peak[,2])),
+                                  end= as.numeric(as.matrix(peak[,3])),
+                                  names=as.matrix(as.matrix(peak[,1]))))
+  annotatedpeak <- annotatePeakInBatch(peak_gr, AnnotationData=dc_annoData)
+  anno_dc3k = rbind(anno_dc3k,
+                    data.frame(name = i,as.data.frame(annotatedpeak)))
+}
+
+
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+
+ggplot(anno_psph, aes(x=distancetoFeature, fill=name)) +
+#  geom_histogram(alpha=0.6, binwidth = 5) +
+  geom_density() +
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size = 8)
+  ) +
+  xlab("") +
+  ylab("Assigned Probability (%)") +
+  facet_wrap(~name) +
+  xlab("Distance to Start Codon") +
+  xlim(-1000,2000)
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/methylome/distri_psph_startcodon.pdf", width = 10, height = 6)
+
+ggplot(anno_dc3k, aes(x=distancetoFeature, fill=name)) +
+#  geom_histogram(alpha=0.6, binwidth = 5) +
+  geom_density() +
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size = 8)
+  ) +
+  xlab("") +
+  ylab("Assigned Probability (%)") +
+  facet_wrap(~name) +
+  xlab("Distance to Start Codon") +
+  xlim(-1000,2000)
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/methylome/distri_dc3k_startcodon.pdf", width = 10, height = 6)
+
+ggplot(anno_psph, aes(x=end, fill=name)) +
+  geom_density() +
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size = 8)
+  ) +
+  xlab("chromosome distribution") +
+  ylab("Density") +
+  facet_wrap(~name)
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/methylome/distri_psph.pdf", width = 10, height = 6)
+
+ggplot(anno_dc3k, aes(x=end, fill=name)) +
+  geom_density() +
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size = 8)
+  ) +
+  xlab("chromosome distribution") +
+  ylab("Density") +
+  facet_wrap(~name)
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/methylome/distri_dc3k.pdf", width = 10, height = 6)
+```
+
+
+in the plasmids
+```{R}
+df <- rbind(foundinDorado, "foundinOptimized", "notfoundinDorado", "notfoundinOptimized")
+ggplot(anno_psph, aes(x=end, fill=name)) +
+  geom_density() +
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size = 8)
+  ) +
+  xlab("chromosome distribution") +
+  ylab("Density") +
+  facet_wrap(~name)
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/methylome/distri_psph.pdf", width = 10, height = 6)
+
+ggplot(anno_dc3k, aes(x=end, fill=name)) +
+  geom_density() +
+  scale_fill_viridis(discrete=TRUE) +
+  scale_color_viridis(discrete=TRUE) +
+  theme_ipsum() +
+  theme(
+    legend.position="none",
+    panel.spacing = unit(0.1, "lines"),
+    strip.text.x = element_text(size = 8)
+  ) +
+  xlab("chromosome distribution") +
+  ylab("Density") +
+  facet_wrap(~name)
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/methylome/distri_dc3k.pdf", width = 10, height = 6)
+```
