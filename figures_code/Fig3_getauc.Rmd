@@ -1,0 +1,157 @@
+# Calculate AUC and draw F1 score
+
+```{R}
+
+trimed.df.WT <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AWT.trimed.df0429.csv", row.names = 1)
+trimed.df.MU <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AMU.trimed.df0611.csv", row.names = 1)
+trimed.df.LOST <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448ALOST.trimed.df0429.csv", row.names = 1)
+trimed.df.OP.WT <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AOP_WT.trimed.df0430.csv", row.names = 1)
+trimed.df.OP.MU <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AOP_MU.trimed.df0612.csv", row.names = 1)
+
+get.auc <- function(tool,a,b) {
+  # tool <- "SMRT"
+  # a <- "Recall"
+  # b <- "Precision"
+  a.vector <- trimed.df[trimed.df$Tool == tool,][[a]]
+  a.vector <- c(0, a.vector, 1)
+  b.vector <- trimed.df[trimed.df$Tool == tool,][[b]]
+  b.vector <- c(0, b.vector, 1)
+  area <- integrate(function(x) approx(a.vector, 
+                                       b.vector, xout = x)$y, 
+                    0, 1,subdivisions = 1000)
+  return(area)
+}
+
+
+
+dataset.name <- c("Tombo_levelcom", "Tombo_modelcom", "Nanodisco", "Tombo_denovo", "mCaller", "Dorado", "Hammerhead")
+AUC <- data.frame()
+for (k in c("trimed.df.WT", "trimed.df.MU" ,"trimed.df.LOST")){
+  trimed.df<-get(k)
+  for (i in dataset.name){
+    area_PR <- get.auc(i, "Recall", "Precision")
+    area_ROC <- get.auc(i, "FPR", "TPR")
+    AUC <- rbind(AUC, data.frame(set=k,name = i, PRC = round(area_PR[["value"]],3), ROC = round(area_ROC[["value"]],3)))
+  }
+}
+
+write.csv(AUC,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/AUC0611.csv")
+```
+
+```{R}
+dataset.name <- c("Dorado", "mCaller", "Tombo_denovo", "Tombo_levelcom", "Tombo_modelcom" )
+trimset.name <- c("trimed.df.WT", "trimed.df.OP.WT" , "trimed.df.MU", "trimed.df.OP.MU")
+trimset.name <- c("trimed.df.WT", "trimed.df.MU", "trimed.df.LOST")
+
+best.df <- data.frame()
+
+# Give a dataframe of best F1 with cutoff
+for (i in trimset.name){
+  df <- get(i)
+  for (k in dataset.name){
+    # Get the row of best F1 score
+    df.cate <- subset(df, Tool == k)
+    df.cate <- subset(df.cate,F1score == max(df.cate$F1score))
+    best.df.temp <- df.cate[order(df.cate$OriginalValue, decreasing = F),][1,]
+    best.df.temp <- cbind(Type = "BestF1", best.df.temp)
+    best.df <- rbind(best.df, data.frame(trimset = i, as.data.frame(best.df.temp)))
+  }
+}
+rm(best.df.temp, df.cate)
+
+best.df$trimset <- gsub("trimed.df.WT","trimed.df1",best.df$trimset)
+best.df$trimset <- gsub("trimed.df.OP.WT","trimed.df2",best.df$trimset)
+best.df$trimset <- gsub("trimed.df.MU","trimed.df3",best.df$trimset)
+best.df$trimset <- gsub("trimed.df.OP.MU","trimed.df4",best.df$trimset)
+
+best.df <- best.df[best.df$Tool != "Nanodisco" & best.df$Tool != "Hammerhead",]
+ggplot(best.df, aes(trimset, Tool, fill= F1score)) + 
+  geom_tile() +
+  theme_bw() +
+  scale_fill_distiller(palette = "RdPu", trans = "reverse") +
+  scale_y_discrete(limits = rev(dataset.name)) +
+  xlab("") +
+  ylab("")
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F5_OP/heat0430.pdf",width = 5, height = 7)
+
+ggplot(best.df,aes(x = Tool,y = Value, fill = trimset)) + 
+  geom_bar(stat = "identity",position = "dodge") +
+  scale_fill_manual(values = c("#B8A8CF","#E7BCC6","#FDCF9E","#EFA484")) +
+  xlab("")+
+  ylab("")+
+#  ggtitle("Rescaled Value change") +
+  theme_classic()
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F5_OP/bar0430.pdf",width = 10, height = 4)
+
+```
+
+```{R}
+library(gridExtra)
+library(patchwork)
+
+# WT,MU
+
+trimed.df <- trimed.df.LOST[trimed.df.LOST$Tool != "Nanodisco" & trimed.df.LOST$Tool != "Hammerhead",]
+trimed.df <- trimed.df.MU
+p <- ggplot(trimed.df, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  theme_light() +
+  xlab("A sites") +
+  ylab("F1 score") +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    # axis.text.x = element_text(family = "Arial", size = 10),
+    # axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578"))
+# ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/legend.pdf",width = 5, height = 7)
+
+pp <- ggplot(trimed.df, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.5) +
+#  geom_point(size = 0.2, color = "grey") +
+  theme_bw() +
+  theme(legend.position="none")+
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578")) +
+    xlim(0,20000)+
+  xlab("")+
+  ylab("")
+p1 <- p + inset_element(pp, left = 0.3, bottom = 0.3, right = 0.95, top = 0.95) 
+p1
+
+trimed.df <- trimed.df.LOST[trimed.df.LOST$Tool == "Tombo_levelcom" | trimed.df.LOST$Tool == "Tombo_modelcom",]
+p2<-ggplot(trimed.df, aes(x=Recall, y=Precision, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  theme_light() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    # axis.text.x = element_text(family = "Arial", size = 10),
+    # axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578"))
+ # scale_color_manual(values = c("#a9a9a9","#e29578"))
+
+p3<-ggplot(trimed.df, aes(x=FPR, y=TPR, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  theme_light() +
+    theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    # axis.text.x = element_text(family = "Arial", size = 10),
+    # axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  )+
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578"))
+  # scale_color_manual(values = c("#a9a9a9","#e29578"))
+plot <- p1+p2+p3
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AMU0611.pdf", plot, width = 9, height = 3)
+```
