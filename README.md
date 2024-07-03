@@ -42,6 +42,29 @@ Nanopore tools:
 | **Dorado**  | 0.5.0  |conda|
 | **mCaller**  | 0.0.5.8  |Pypi|
 
+### Structure
+
+```mermaid
+graph TD
+	A(TGS-comparison-for-bacteria-6mA)--> B(main_code)
+	A(TGS-comparison-for-bacteria-6mA) --> C(figures_code)
+    B(main_code) --> d(Tombo)
+    B(main_code) --> e(mcaller)
+    B(main_code) --> f(Dorado)
+    B(main_code) --> r(nanodisco)
+    B(main_code) --> h(Harmmerhead)
+    d(Tombo)  --> i(model_comp)
+    d(Tombo)  --> j(level_comp)
+    d(Tombo)  --> k(de novo)
+    C(figures_code)  --> l(fig1_QC)
+    C(figures_code)  --> m(fig2_motif)
+    C(figures_code)  --> n(fig3_site)
+    C(figures_code)  --> o(fig4_outliers)
+    C(figures_code)  -->p(fig5_optimizer)
+    C(figures_code)  -->q(fig5_application)
+
+```
+
 ### main_code
 #### Nanopore_tools_code
 Here are all the shell commands used to obtain the bacterial 6mA predictions using all seven Nanopore tools.
@@ -58,7 +81,7 @@ Additionally, for Tombo, we developed [read_tombo.py](main_code/Nanopore_tools_c
       --ref REF             reference path                                   
       --output OUTPUT       output path   
 
-#### R mark down files
+#### R markdown files
 We show the main code of our work, entitled [psph_wt.Rmd](main_code/psph_wt.Rmd), [psph_mu.Rmd](main_code/psph_mu.Rmd), [psph_lost.Rmd](main_code/psph_lost.Rmd), [pst.Rmd](main_code/pst.Rmd), [psph_optimization.Rmd](main_code/psph_optimization.Rmd), and [psph_dorado_downsample.Rmd](main_code/psph_dorado_downsample.Rmd).
 In each Rmd, we recommend the reading following the **Outline**.
 For example in [psph_wt.Rmd](main_code/psph_wt.Rmd). 
@@ -72,7 +95,7 @@ For example in [psph_wt.Rmd](main_code/psph_wt.Rmd).
 
 
 ### figures_code
-We present the additional codes for figures plot.
+We present the additional codes for the figures plot.
 
 #### Showcase of the current
 After obtaining many modification sites, 
