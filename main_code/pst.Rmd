@@ -1,0 +1,554 @@
+# DC3000 analysis
+
+We have the data of DC3000_WT SMRT, DC3000_WT DC3000_motifs, DC3000_WT & WGA Nanopore R10.4.1 sequencing results. Nanopore R10.4.1, we use DC3000_dorado and Hammerhead.
+
+## Load DATA
+
+```{R}
+rm(list=ls())
+library(tidyr)
+library(data.table)
+library(dplyr)
+
+## Define a fuction to normalize the OriginalValue
+## yi = (xi - min(x)) / (max(x) - min(x))
+get.normalized <- function(df){
+  eps <- 1e-6
+  df$Value <- (df$OriginalValue - min(df$OriginalValue))/(max(df$OriginalValue) - min(df$OriginalValue)) * (1 - 2 * eps) + eps
+  return(df)
+}
+## Define a function to change the chromosome name
+get.chromosome.name <- function(df){
+  df$Chromosome <- gsub("refseq\\|NC_004578\\.1\\|chromosome","chromosome",df$Chromosome)
+  df$Chromosome <- gsub("refseq\\|NC_004633\\.1\\|plasmid","plasmidA",df$Chromosome)
+  df$Chromosome <- gsub("refseq\\|NC_004632\\.1\\|plasmid","plasmidB",df$Chromosome)
+  return(df)
+}
+
+get.chromosome.name2 <- function(df){
+  df$Chromosome <- gsub("NC_004578.1","chromosome",df$Chromosome)
+  df$Chromosome <- gsub("NC_004633.1","plasmidA",df$Chromosome)
+  df$Chromosome <- gsub("NC_004632.1","plasmidB",df$Chromosome)
+  return(df)
+}
+
+# # Save the info in filelist and dataframe
+# filelist.DC3000 <- list()
+# filelist.DC3000_WGA <- list()
+# data.DC3000 = data.frame()
+# data.DC3000_WGA = data.frame()
+
+# load files
+# all A sites
+DC3000_A = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000_Asite.bed", header = F)
+DC3000_A <- DC3000_A[,c(1,3,6)]
+colnames(DC3000_A) <- c("Chromosome","Position","Strand")
+DC3000_A <- get.chromosome.name2(DC3000_A)
+
+# all 6mA site as ground turth
+DC3000_motif1 = read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000_CAARGAA.bed", sep="\t",header = F)
+DC3000_motif2 = read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000_GAAN4RTRCC.bed", sep="\t",header = F)
+DC3000_motif3 = read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000_GGYAYN4TTC.bed", sep="\t",header = F)
+DC3000_motif4 = read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000_GYAGN5CTRC.bed", sep="\t",header = F)
+DC3000_motif <- rbind(DC3000_motif1, DC3000_motif2, DC3000_motif3, DC3000_motif4)
+DC3000_motif <- DC3000_motif[,c(1,3,6)]
+colnames(DC3000_motif) <- c("Chromosome","Position","Strand")
+DC3000_motif <- get.chromosome.name2(DC3000_motif)
+duplicated_rows <- duplicated(DC3000_motif)
+DC3000_motif <- DC3000_motif[!duplicated_rows,]
+rm(DC3000_motif1, DC3000_motif2, DC3000_motif3, DC3000_motif4, duplicated_rows)
+
+# DC3000_SMRTfrom PacBio
+DC3000_SMRT= fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/smrt.bed", header = F, skip = 6, sep = "\t")
+DC3000_SMRT<- DC3000_SMRT[,c(1,5,7,6)]
+colnames(DC3000_SMRT) <- c("Chromosome","Position","Strand","OriginalValue")
+DC3000_SMRT<- arrange(DC3000_SMRT, desc(OriginalValue)) %>%
+  mutate(Rank = row_number()) %>%
+  get.normalized() %>%
+  get.chromosome.name()
+
+# DC3000_dorado+Modkit
+DC3000_dorado = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WT_dorado.bed", header = F)
+DC3000_dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WT_dorado.bed", sep = " ", header = F)
+DC3000_dorado <- cbind(DC3000_dorado[,c(1,3,6)], DC3000_dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(DC3000_dorado) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(DC3000_dorado_t)
+DC3000_dorado <- arrange(DC3000_dorado, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+# DC3000_dorado+Modkit of WGA
+DC3000_dorado_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WGA_dorado.bed", header = F)
+DC3000_dorado_WGA_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WGA_dorado.bed", sep = " ", header = F)
+DC3000_dorado_WGA <- cbind(DC3000_dorado_WGA[,c(1,3,6)], DC3000_dorado_WGA_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(DC3000_dorado_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(DC3000_dorado_WGA_t)
+DC3000_dorado_WGA <- arrange(DC3000_dorado_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+
+# # Save in filelist
+# filelist.DC3000 <- list(SMRT=SMRT, DC3000_dorado=DC3000_dorado)
+# 
+# # Save in dataframe
+# data.1448AWT <- data.frame()
+# data.1448AWT <- rbind(data.frame(Category = 'SMRT', as.data.frame(SMRT)),
+#               data.frame(Category = 'Tombo_denovo', as.data.frame(Tombo_denovo)),
+#               data.frame(Category = 'Tombo_levelcom', as.data.frame(Tombo_levelcom)),
+#               data.frame(Category = 'Tombo_modelcom', as.data.frame(Tombo_modelcom)),
+#               data.frame(Category = 'mCaller', as.data.frame(mCaller)),
+#               data.frame(Category = 'Nanodisco', as.data.frame(Nanodisco)),
+#               data.frame(Category = 'DC3000_dorado', as.data.frame(DC3000_dorado))) %>%
+#   drop_na()
+# 
+# rm(SMRT, Tombo_denovo, Tombo_levelcom, Tombo_modelcom, mCaller, Nanodisco)
+
+```
+
+## Meme call DC3000_motif of DC3000 results
+
+```{R}
+library(memes)
+library(seqinr)
+library(GenomicRanges)
+library(rtracklayer)
+library(magrittr)
+library(universalmotif)
+library(Biostrings)
+library(BSgenome)
+library(ggplot2)
+library(tidyr)
+library(gridExtra)
+# load fastq file and make it into stringset, ready for get_sequence
+fasta_file <- "/Users/lubeifang/Desktop/BIOTOOLS/ref/DC3000_formeme.fasta"
+dc3k_stringset <- readDNAStringSet(fasta_file)
+
+# define how to meme search
+# We can change the batch search size for fasta and meme search way
+get.meme <- function(sorted){
+    sorted <- sorted[sorted$Position >= 20, ]
+    bed <- data.frame(chr=sorted$Chromosome,
+                      start=sorted$Position-1,
+                      end=sorted$Position,
+                      Starnd=sorted$Strand)
+    gR <- GRanges(seqnames = bed$chr,
+                  ranges = IRanges(start = bed$start, end = bed$end),
+                  strand = "*")
+    # resize ranges
+    gRr <- resize(gR,30, "center") 
+    sequences <- get_sequence(gRr, dc3k_stringset)
+    # unique(width(gRr))
+    # s <- data.frame(sequences)
+  meme_results <- runStreme(sequences,control = "shuffle", minw = 8, maxw = 15, nmotifs = 3)
+  return(meme_results)
+}
+
+
+# Do the MEME
+# set how many sites we would like to include
+# top = 5000
+top = 10000
+plot_list <- list()
+meme_results.df <- data.frame()
+
+dataset.name <- c("DC3000_SMRT", "DC3000_dorado")
+for (i in dataset.name){
+  print(i)
+  file <- get(i)
+  # Order it by Value, and get first top sites file
+  sorted1 <- file[order(file$Value, decreasing = T),][1:top,] # bigger to smaller
+  sorted1 <- drop_na(sorted1) # DC3000_SMRTfor 0104LOSS have only 2873 rows
+  meme_results <- get.meme(sorted1)
+  plot <- meme_results %>% 
+    to_list() %>% 
+    view_motifs(tryRC = F)
+  name=paste0(i,"_",top,"DC3000_motif")
+  plot <- plot + ggtitle(name)
+  plot_list[[length(plot_list) + 1]] <- plot
+  
+  meme_results.df <- rbind(meme_results.df, as.data.frame(Tool = i, data.frame(meme_results)))
+}
+g <- arrangeGrob(grobs = plot_list, ncol=2) 
+ggsave(file="motifs0520.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/DC3000/",g, width = 20, height = 8)
+
+motif_detail <- meme_results.df[,c(-1,-17)]
+write.csv(motif_detail,"/Users/lubeifang/Desktop/Benchmark/Figure/DC3000/motif_detail0520.csv")
+
+```
+### motif pval nsites
+```{R}
+tool_detail <- data.frame(name=rep(c("SMRT", "Dorado"),3),
+                          type=c(rep(c("Motif 1"),2),rep(c("Motif 2"),2), rep(c("Motif 3"),2)),
+                          nsites=as.numeric(c("2380","1992","2002","1152","1080","886")),
+                          pval=as.numeric(c("8.4e-72","3e-50","1.2e-43","1.1e-20","3.8e-25","1.1e-20")))
+
+tool_detail$pval <- round(-log(tool_detail$pval,10),2)
+tool_detail[tool_detail=="Inf"] <- "0"
+tool_detail$pval <- as.numeric(tool_detail$pval)
+
+type1_data <- tool_detail[tool_detail$type == "Motif 1", ]
+type2_data <- tool_detail[tool_detail$type == "Motif 2", ]
+type3_data <- tool_detail[tool_detail$type == "Motif 3", ]
+
+motif_smrt <- tool_detail[tool_detail$name == "SMRT", ]
+motif_dorado <- tool_detail[tool_detail$name == "Dorado", ]
+
+
+ggplot(tool_detail, aes(x=type, y=name),showCategory=8) +
+	geom_point(aes(color=pval, size=nsites))+
+  scale_shape_manual(values = c(1,20)) +
+  scale_color_continuous() +
+  scale_size_continuous()  +
+  scale_color_gradient(high = "#4E659B", low = "pink") +
+  theme_light() +
+  xlab("") +
+  ylab("") +
+  theme(    legend.position = "bottom")
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/DC3000/pval_nsites0520.pdf", width = 4, height = 4)
+```
+Compare the sites!
+  
+```{R}
+# define two functions
+# get a 5-mer of DC3000_SMRTposition
+get.5mer.df <- function(df){
+  df1 <- df
+  df1$Position <- df1$Position + 1
+  df2 <- df
+  df2$Position <- df2$Position + 2
+  df3 <- df
+  df3$Position <- df3$Position - 1
+  df4 <- df
+  df4$Position <- df4$Position - 2
+  df5 <- rbind(df1,df2,df3,df4,df) %>%
+    arrange(desc(OriginalValue)) %>%
+    distinct(Position,Strand,Chromosome, .keep_all = T)
+  return(df5)
+}
+
+get.trim.df.A <- function(preds_df, gt_df) {
+  
+  # preds_df <- DC3000_dorado
+  # gt_df <- DC3000_motif
+  
+  TP1 <- c()
+  FN1 <- c() 
+  FP1 <- c()
+  TN1 <- c()
+  TPR1 <- c()
+  TNR1 <- c()
+  FPR1 <- c()
+  precision1 <- c()
+  recall1 <- c()
+  F1score1 <- c()
+  rank1 <- c()
+  originalvalue1 <- c()
+  value1 <- c()
+  
+  cutoffs <- seq(log10(1), log10(2.573e6), length.out = 200) # for A
+  cutoffs <- 10^cutoffs
+  
+  for (cutoff in cutoffs) {
+    print(cutoff)
+    preds <- subset(preds_df, Rank <= cutoff) # if it is rank, make sure <=; if it is fraction, make sure >=
+    rank1 <- c(rank1,nrow(preds))
+    value1 <- c(value1,min(preds$Value))
+    originalvalue1 <- c(originalvalue1,min(preds$OriginalValue))
+    intersection <- inner_join(preds, gt_df, by = c("Position", "Chromosome", "Strand"))
+    TP <- nrow(intersection)
+    TP1 <- c(TP1,TP)
+    union <- rbind(preds[,c(1,2,3)],gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(DC3000_A, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    FP = nrow(preds)-TP
+    FP1 <- c(FP1,FP)
+    FN = nrow(gt_df)-TP
+    FN1 <- c(FN1,FN)
+    precision = TP/nrow(preds)
+    precision1 <- c(precision1, precision)
+    recall = TP/nrow(gt_df)
+    recall1 <- c(recall1, recall)
+    F1score = 2*precision*recall/(precision+recall)
+    F1score1 <- c(F1score1,F1score)
+    TPR1 <- c(TPR1, TP/(TP+FN))
+    TNR1 <- c(TNR1, TN/(TN+FP))
+    FPR1 <- c(FPR1, FP/(FP+TN))
+  }
+  plot1 <- data.frame(Cutoff = cutoffs, Rank = rank1, Value = value1, OriginalValue = originalvalue1, TP = TP1, FN = FN1, FP = FP1, TN = TN1, Precision = precision1, Recall = recall1, F1score = F1score1, TPR = TPR1, TNR = TNR1, FPR = FPR1) 
+  return(plot1)
+} 
+
+
+```
+
+####get.trim.df.LOSTA
+```{R}
+# Compare to groundtruth
+# For all ATCG predict tools
+# 1448A chromosome, large plasmid and small plasmid have 1.22e7 nt in both strands
+
+# for mCaller, Dorado, they are singel mode and A only, so the don't need shift
+# for single mode, they need to find the LOST sites of WT when compare to KO
+get.trim.df.LOSTA <- function(preds_WT, preds_KO, gt_df) {
+  TP1 <- c()
+  FN1 <- c() 
+  FP1 <- c()
+  TN1 <- c()
+  TPR1 <- c()
+  TNR1 <- c()
+  FPR1 <- c()
+  precision1 <- c()
+  recall1 <- c()
+  F1score1 <- c()
+  rank1 <- c()
+  originalvalue1 <- c()
+  value1 <- c()
+  
+  cutoffs <- seq(log10(1), log10(2.573e6), length.out = 200) # for ATCG
+  cutoffs <- 10^cutoffs
+  
+  
+  for (cutoff in cutoffs) {
+    print(cutoff)
+    preds_WT_temp <- subset(preds_WT, Rank <= cutoff) # if it is rank, make sure <=; if it is fraction, make sure >=
+    preds_KO_temp <- subset(preds_KO, OriginalValue >= min(preds_WT_temp$OriginalValue))
+    preds <- anti_join(preds_WT_temp, preds_KO_temp, by = c("Position", "Chromosome", "Strand"))
+    rank1 <- c(rank1,nrow(preds_WT_temp))
+    value1 <- c(value1,min(preds_WT_temp$Value))
+    originalvalue1 <- c(originalvalue1,min(preds_WT_temp$OriginalValue))
+    
+    intersection <- inner_join(preds, gt_df, by = c("Position", "Chromosome", "Strand"))
+    TP <- nrow(intersection)
+    TP1 <- c(TP1,TP)
+    union <- rbind(preds[,c(1,2,3)],gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(DC3000_A, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    FP = nrow(preds)-TP
+    FP1 <- c(FP1,FP)
+    FN = nrow(gt_df)-TP
+    FN1 <- c(FN1,FN)
+    precision = TP/nrow(preds)
+    precision1 <- c(precision1, precision)
+    recall = TP/nrow(gt_df)
+    recall1 <- c(recall1, recall)
+    F1score = 2*precision*recall/(precision+recall)
+    F1score1 <- c(F1score1,F1score)
+    TPR1 <- c(TPR1, TP/(TP+FN))
+    TNR1 <- c(TNR1, TN/(TN+FP))
+    FPR1 <- c(FPR1, FP/(FP+TN))
+  }
+  plot1 <- data.frame(Cutoff = cutoffs, Rank = rank1, Value = value1, OriginalValue = originalvalue1, TP = TP1, FN = FN1, FP = FP1, TN = TN1, Precision = precision1, Recall = recall1, F1score = F1score1, TPR = TPR1, TNR = TNR1, FPR = FPR1) 
+  return(plot1)
+} 
+
+```
+
+## Calculate F1 score of each tools Plot F1 score
+
+```{R}
+dataset.name <- c("DC3000_SMRT", "DC3000_dorado")
+trimed.df <- data.frame()
+for (name in dataset.name){
+  print(name)
+  df <- get(name)
+  df_WGA <- get(paste0(name,"_WGA"))
+  trimed_temp <-  get.trim.df.A(df, DC3000_motif)
+  trimed.df <- rbind(trimed.df, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  rm(trimed_temp)
+  
+  trimed_temp <-  get.trim.df.LOSTA(df,df_WGA,DC3000_motif)
+  trimed.df <- rbind(trimed.df, data.frame(Tool = "Optimized", as.data.frame(trimed_temp)))
+  rm(trimed_temp)
+  
+  trimed.df[is.na(trimed.df)] <- 0
+}
+
+trimed.df<- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/DC3000.trimed.df.csv", row.names = 1)
+write.csv(trimed.df,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/DC3000.trimed.df.csv")
+```
+
+
+###F1
+```{R}
+# plot F1 score curve
+ggplot(trimed.df, aes(x=Value, y=F1score, group=Tool, color=Tool))+
+  geom_line() +
+ # ggtitle("F1 score") +
+  theme_bw() +
+  scale_color_manual(values = c("#9BBFCF","#C6AEBA","#DFD6A6")) +
+  ylim(0,1) +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position = "bottom"
+  ) 
+
+ggsave(file="f10430.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/DC3000/",width = 4.3, height = 4)
+
+```
+
+```{R}
+bestf1score <- c("0.9941574","0.5140640", "0.7748536")
+bestcutoffrank <- c("5454","7903","15407")
+
+
+set1 <- DC3000_SMRT[DC3000_SMRT$Rank <= 5454,]
+set2 <- DC3000_dorado[DC3000_dorado$Rank <= 7903,]
+set3 <- anti_join(DC3000_dorado[DC3000_dorado$Rank <= 15407,], DC3000_dorado_WGA[DC3000_dorado_WGA$OriginalValue >= 0.8836,], by = c("Position", "Chromosome", "Strand"))
+
+
+x <- list(Dorado = paste0(set2$Chromosome,set2$Position,set2$Strand),
+        Optimized = paste0(set3$Chromosome,set3$Position,set3$Strand),
+        SMRT = paste0(set1$Chromosome,set1$Position,set1$Strand),
+        Motifs = paste0(DC3000_motif$Chromosome,DC3000_motif$Position,DC3000_motif$Strand))
+ggVennDiagram(x, label_alpha = 0, edge_size = 0.3,label_percent_digit = 2) +
+  scale_fill_gradient(low="white",high = "#C6AEBA") +
+  theme(legend.position = "none")
+ggsave(file="venn.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/DC3000/",width = 6, height = 6)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Draw PR curve and ROC curve
+
+```{R}
+# for AUPRC, a is Recall, b is Precision; for AUROC, a is FPR, b is TPR
+get.auc <- function(tool,a,b) {
+  a.vector <- trimed.df[trimed.df$Tool == tool,][[a]]
+  a.vector <- c(0, a.vector, 1)
+  b.vector <- trimed.df[trimed.df$Tool == tool,][[b]]
+  b.vector <- c(0, b.vector, 1)
+  area <- integrate(function(x) approx(a.vector, 
+                                       b.vector, xout = x)$y, 
+                    0, 1,subdivisions = 1000)
+  return(area)
+}
+
+area_PR_DC3000_SMRT<- get.auc("DC3000_SMRT", "Recall", "Precision")
+area_PR_DC3000_dorado <- get.auc("DC3000_dorado", "Recall", "Precision")
+area_PR_optimized <- get.auc("Optimized", "Recall", "Precision")
+
+# PR Curve
+
+# fill the point 0 and 1
+# trimed.df <- rbind(trimed.df, data.frame(FPR = 0, TPR = 0, Tool = "SMRT"))
+# 
+# # 在 trimed.df 中添加终点 (1, 1)
+# PRC <- trimed.df[,c(1,9,10)] %>%
+#   rbind(data.frame(Recall = 0, Precision = 1, Tool = "SMRT"),
+#         data.frame(Recall = 1, Precision = 0, Tool = "SMRT"),
+#         data.frame(Recall = 0, Precision = 1, Tool = "DC3000_dorado"),
+#         data.frame(Recall = 1, Precision = 0, Tool = "DC3000_dorado"))
+
+ggplot(trimed.df, aes(x=Recall, y=Precision, group=Tool, color=Tool))+
+  geom_line() +
+  ggtitle(" PR Curve") +
+  theme_bw() +
+  scale_color_manual(values = c("#9BBFCF","#98B85D","#C6AEBA","#DFD6A6","#B7B2D0","#5AA4AE","#BEE3D4")) +
+  annotate("text", x = 0.25, y = 0.1, label = paste0("SMRT AUPRC = ",area_PR_DC3000_SMRT[["value"]])) +
+  annotate("text", x = 0.25, y = 0.05, label = paste0("DC3000_dorado AUPRC = ",area_PR_DC3000_dorado[["value"]])) +
+  annotate("text", x = 0.25, y = 0, label = paste0("Optimiezed AUPRC = ",area_PR_optimized[["value"]]))
+
+
+
+# draw ROC curve
+area_ROC_DC3000_SMRT<- get.auc("SMRT", "FPR", "TPR")
+area_ROC_DC3000_dorado <- get.auc("DC3000_dorado", "FPR", "TPR")
+# PR Curve
+ROC <- trimed.df[,c(1,12,14)] %>%
+  rbind(data.frame(FPR = 1, TPR = 1, Tool = "SMRT"),
+        data.frame(FPR = 0, TPR = 0, Tool = "SMRT"),
+        data.frame(FPR = 1, TPR = 1, Tool = "DC3000_dorado"),
+        data.frame(FPR = 0, TPR = 0, Tool = "DC3000_dorado"))
+ggplot(ROC, aes(x= FPR, y= TPR, group=Tool, color=Tool))+
+  geom_line() +
+  ggtitle(" ROC Curve") +
+  theme_bw() +
+  scale_color_manual(values = c("#9BBFCF","#98B85D","#C6AEBA","#DFD6A6","#B7B2D0","#5AA4AE","#BEE3D4")) +
+  annotate("text", x = 0.75, y = 0.95, label = paste0("DC3000_SMRTAUROC = ",area_ROC_SMRT[["value"]])) +
+  annotate("text", x = 0.75, y = 0.9, label = paste0("DC3000_dorado AUROC = ",area_ROC_DC3000_dorado[["value"]]))
+```
+
+Get the best cutoff
+
+```{R}
+dataset.name <- c("DC3000_SMRT", "DC3000_dorado", "Optimized")
+best.df <- data.frame()
+
+trimed.df<-read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/DC3000.trimed.df.csv", row.names = 1)
+trimed.df$F1score <- as.numeric(trimed.df$F1score)
+
+# Give a dataframe of best F1 with cutoff
+for (k in dataset.name){
+  print(k)
+  # Get the row of best F1 score
+  df.cate <- subset(trimed.df, Tool == k)
+  df.cate <- subset(df.cate,F1score == max(df.cate$F1score))
+  best.df.temp <- df.cate[order(df.cate$OriginalValue, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestF1", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+  # Get the row of best Recall score
+  df.cate <- subset(trimed.df, Tool == k) 
+  df.cate <- subset(df.cate,Recall == max(df.cate$Recall))
+  best.df.temp <- df.cate[order(df.cate$Recall, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestRecall", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+  # Get the row of best Precision score
+  df.cate <- subset(trimed.df, Tool == k) 
+  df.cate <- subset(df.cate,Precision == max(df.cate$Precision))
+  best.df.temp <- df.cate[order(df.cate$Precision, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestPrecision", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+}
+rm(best.df.temp, df.cate)
+
+# Best cutoff for DC3000_dorado
+DC3000_dorado_bestf1_OV <- best.df[best.df$Tool == "DC3000_dorado" & best.df$Type == "BestF1",]$OriginalValue
+DC3000_dorado_bestf1_OV
+
+outliers <- nrow(DC3000_dorado_WGA[DC3000_dorado_WGA$OriginalValue >= DC3000_dorado_bestf1_OV,])
+outliers
+common <- nrow(DC3000_dorado[DC3000_dorado$OriginalValue >= DC3000_dorado_bestf1_OV,])
+common
+
+# Calculate outliers discovery rate
+ODR <- outliers/common
+ODR
+
+# Calculate outliers in ground truth
+O_gt <- inner_join(DC3000_dorado_WGA[DC3000_dorado_WGA$OriginalValue >= DC3000_dorado_bestf1_OV,], DC3000_motif, 
+                   by = c("Position", "Chromosome", "Strand"))
+nrow(O_gt)/outliers
+```

@@ -1,0 +1,1000 @@
+# 1448AWT
+
+We analyze the 6mA sites of 1448AWT in this notebook
+
+First, we need to have all the datas
+
+## Load Data of WT
+```{R}
+rm(list=ls())
+library(tidyr)
+library(data.table)
+library(dplyr)
+
+
+## defeine a fuction to normalize the OriginalValue
+## yi = (xi - min(x)) / (max(x) - min(x))
+get.normalized <- function(df){
+  eps <- 1e-6
+  df$Value <- (df$OriginalValue - min(df$OriginalValue))/(max(df$OriginalValue) - min(df$OriginalValue)) * (1 - 2 * eps) + eps
+  return(df)
+}
+
+get.chromosome.name <- function(df){
+  df$Chromosome <- gsub("refseq\\|NC_005773\\.3\\|chromosome","chromosome",df$Chromosome)
+  df$Chromosome <- gsub("refseq\\|NC_007275\\.1\\|small","small.plasmid",df$Chromosome)
+  df$Chromosome <- gsub("refseq\\|NC_007274\\.1\\|large","large.plasmid",df$Chromosome)
+  return(df)
+}
+
+# This one for mCaller
+get.chromosome.name2 <- function(df){
+  df$Chromosome <- gsub("small","small.plasmid",df$Chromosome)
+  df$Chromosome <- gsub("large","large.plasmid",df$Chromosome)
+  return(df)
+}
+
+# load files
+# all Asites in 1448A
+Asites <- fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/1448A_Asite.bed", header = F)
+Asites <- Asites[,c(1,3,6)]
+colnames(Asites) <- c("Chromosome","Position","Strand")
+Asites <- get.chromosome.name(Asites)
+
+# all 1448A motifs
+motif1 <- read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/1448A_CAGCN6CTC.bed", sep = "\t", header = F)
+motif2 <- read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/1448A_GAGN6GCTG.bed", sep = "\t", header = F)
+# Type1 motif
+MotifT1_peak <- rbind(motif1, motif2)
+MotifT1 <- MotifT1_peak[,c(1,3,6)]
+colnames(MotifT1) <- c("Chromosome","Position","Strand")
+MotifT1 <- get.chromosome.name(MotifT1)
+# Type2 motif
+MotifT2_peak <- read.csv("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/1448A_RAGTACTY.bed", sep = "\t", header = F)
+MotifT2 <- MotifT2_peak[,c(1,3,6)]
+colnames(MotifT2) <- c("Chromosome","Position","Strand")
+MotifT2 <- get.chromosome.name(MotifT2)
+# ALL motifs
+Motifs <- rbind(motif1, motif2, MotifT2_peak)
+Motifs <- Motifs[,c(1,3,6)]
+colnames(Motifs) <- c("Chromosome","Position","Strand")
+Motifs <- get.chromosome.name(Motifs)
+
+# SMRT from PacBio
+SMRT = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/smrt.bed", header = F,skip = 1)
+SMRT <- SMRT[,c(1,5,7,6)]
+colnames(SMRT) <- c("Chromosome","Position","Strand","OriginalValue")
+SMRT <- arrange(SMRT, desc(OriginalValue)) %>%
+  mutate(Rank = row_number()) %>%
+  get.normalized() %>%
+  get.chromosome.name()
+#SMRT$Value <- round(SMRT$Value,6)
+# Tombo direct 
+Tombo_denovo = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/tombo_denovo.bed", sep="\t", header = T)
+Tombo_denovo <- Tombo_denovo[,c(1,3,6,7)]
+colnames(Tombo_denovo) <- c("Chromosome","Position","Strand","OriginalValue")
+Tombo_denovo <- arrange(Tombo_denovo, desc(OriginalValue)) %>%
+  mutate(Rank = row_number()) %>%
+  get.normalized()%>%
+  get.chromosome.name()
+#Tombo_denovo$Value <- round(Tombo_denovo$OriginalValue,6)
+# Tombo level_compare
+Tombo_levelcom = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/tombo_levelcom.bed", sep="\t", header = T)
+Tombo_levelcom <- Tombo_levelcom[, c(1,3,6,7)] # this OriginalValue is -log(p-OriginalValue)
+colnames(Tombo_levelcom) <- c("Chromosome","Position","Strand","OriginalValue")
+Tombo_levelcom <- arrange(Tombo_levelcom, desc(OriginalValue)) %>%
+  mutate(Rank = row_number()) %>%
+  get.normalized()%>%
+  get.chromosome.name()
+#Tombo_levelcom$OriginalValue <- round(Tombo_levelcom$OriginalValue,1)
+# Tombo model_compare to WGA
+Tombo_modelcom = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/tombo_modelcom.bed", sep="\t", header = T)
+Tombo_modelcom <- Tombo_modelcom[, c(1,3,6,7)]
+colnames(Tombo_modelcom) <- c("Chromosome","Position","Strand","OriginalValue")
+Tombo_modelcom <- arrange(Tombo_modelcom, desc(OriginalValue)) %>%
+  mutate(Rank = row_number()) %>%
+  get.normalized()%>%
+  get.chromosome.name()
+# Tombo_modelcom$OriginalValue <- round(Tombo_modelcom$OriginalValue,3)
+# mCaller 
+mCaller = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/mcaller.bed", sep="\t", header = F)
+mCaller <- mCaller[,c(1,3,6,5)]
+colnames(mCaller) <- c("Chromosome","Position","Strand","OriginalValue")
+mCaller <- arrange(mCaller, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized() %>%
+  get.chromosome.name2()
+# Nanodisco
+Nanodisco = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/nanodisco.csv", header = T)
+Nanodisco <- drop_na(Nanodisco)
+Nanodisco$Strand <- ifelse(Nanodisco$dir == "fwd", "+", "-")
+Nanodisco <- Nanodisco[,c(1,2,10,8)] # The OriginalValue is t-test p-OriginalValue
+colnames(Nanodisco) <- c("Chromosome","Position","Strand","OriginalValue")
+Nanodisco$OriginalValue <- -log10(Nanodisco$OriginalValue)
+Nanodisco <- arrange(Nanodisco, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+# Dorado+Modkit
+Dorado = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/dorado.bed", header = F)
+Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/dorado.bed", sep = " ", header = F)
+Dorado <- cbind(Dorado[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_t)
+Dorado <- arrange(Dorado, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+# hmmaerhead
+Hammerhead = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/hammerhead.txt", sep="\t", header = TRUE)
+Hammerhead <- rbind(data.frame(Strand = "+", as.data.frame(Hammerhead)),
+                    data.frame(Strand = "-", as.data.frame(Hammerhead)))
+Hammerhead <- Hammerhead[,c(2,3,1,4)]
+colnames(Hammerhead) <- c("Chromosome","Position","Strand","OriginalValue")
+Hammerhead <- arrange(Hammerhead, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+```
+
+###Plot distribution of Value
+```{R}
+data.1448AWT <- rbind(data.frame(Category = 'Tombo_denovo', as.data.frame(Tombo_denovo)),
+                      data.frame(Category = 'Tombo_levelcom', as.data.frame(Tombo_levelcom)),
+                      data.frame(Category = 'Tombo_modelcom', as.data.frame(Tombo_modelcom)),
+                      data.frame(Category = 'mCaller', as.data.frame(mCaller)),
+                      data.frame(Category = 'Nanodisco', as.data.frame(Nanodisco)),
+                      data.frame(Category = 'Dorado', as.data.frame(Dorado)),
+                      data.frame(Category = 'Hammerhead', as.data.frame(Hammerhead))) %>%
+  drop_na()
+
+
+library(ggridges)
+p1 <- ggplot(data.1448AWT, aes(x=Value, y=Category, fill=Category)) +
+  geom_density_ridges(color = NA) +
+  theme_ridges() + 
+  scale_fill_manual(values = c("#98B85D","#7262AC","#AC667E","#287c9e","#BDA96F","#a9a9a9","#e29578"))+
+  theme_ipsum() +
+  ylab("Density") +
+  xlab("Assigned Fraction Probability") +
+  ggtitle("1448AWT Assigned Fraction Distribution") +
+  theme(legend.position="none")
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/1448AWT.pdf", width = 8, height = 6, font="Arial")
+
+rm(data.1448AWT)
+```
+
+## Read datasets of WGA
+```{R}
+# Tombo_levelcom
+Tombo_levelcom_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_levelcom.bed", sep="\t", header = TRUE)
+Tombo_levelcom_WGA <- Tombo_levelcom_WGA[, c(1,3,6,7)]
+colnames(Tombo_levelcom_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+Tombo_levelcom_WGA <- arrange(Tombo_levelcom_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+
+# Tombo model_compare 
+Tombo_modelcom_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_modelcom.bed", sep="\t", header = TRUE)
+Tombo_modelcom_WGA <- Tombo_modelcom_WGA[, c(1,3,6,7)]
+colnames(Tombo_modelcom_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+Tombo_modelcom_WGA <- arrange(Tombo_modelcom_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+
+# Nanodisco
+Nanodisco_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_nanodisco.csv", header = TRUE)
+Nanodisco_WGA <- drop_na(Nanodisco_WGA)
+Nanodisco_WGA$Strand <- ifelse(Nanodisco_WGA$dir == "fwd", "+", "-")
+Nanodisco_WGA <- Nanodisco_WGA[,c(1,2,10,8)]
+colnames(Nanodisco_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+Nanodisco_WGA$OriginalValue <- -log10(Nanodisco_WGA$OriginalValue)
+Nanodisco_WGA <- arrange(Nanodisco_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+
+# Here are singel mode, we need WT and 0104 data of them.
+# WT
+# Tombo direct 
+Tombo_denovo_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_de_novo.bed", sep="\t", header = TRUE)
+Tombo_denovo_WGA <- Tombo_denovo_WGA[,c(1,3,6,7)]
+colnames(Tombo_denovo_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+Tombo_denovo_WGA <- arrange(Tombo_denovo_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number()) %>%
+  get.normalized()%>%
+  get.chromosome.name()
+# mCaller 
+mCaller_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_mCaller.bed", sep="\t", header = F)
+mCaller_WGA <- mCaller_WGA[,c(1,3,6,5)]
+colnames(mCaller_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+mCaller_WGA <- arrange(mCaller_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name2()
+# Dorado+Modkit
+Dorado_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_Dorado.bed", header = F)
+Dorado_WGA_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_Dorado.bed", sep = " ", header = F)
+Dorado_WGA <- cbind(Dorado_WGA[,c(1,3,6)], Dorado_WGA_t[,c(2)]/100) # The OriginalValue is modify fraction
+colnames(Dorado_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+rm(Dorado_WGA_t)
+Dorado_WGA <- arrange(Dorado_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+
+# hmmaerhead
+Hammerhead_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_hammerhead.txt", sep="\t", header = TRUE)
+Hammerhead_WGA <- rbind(data.frame(Strand = "+", as.data.frame(Hammerhead_WGA)),
+                        data.frame(Strand = "-", as.data.frame(Hammerhead_WGA)))
+Hammerhead_WGA <- Hammerhead_WGA[,c(2,3,1,4)]
+colnames(Hammerhead_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
+Hammerhead_WGA <- arrange(Hammerhead_WGA, desc(OriginalValue)) %>%
+  mutate(Rank = row_number())%>%
+  get.normalized()%>%
+  get.chromosome.name()
+
+
+rm(get.chromosome.name, get.chromosome.name2, get.normalized)
+```
+
+###Plot distribution of Value
+```{R}
+data.1448AWGA <- rbind(data.frame(Category = 'Tombo_denovo', as.data.frame(Tombo_denovo_WGA)),
+                      data.frame(Category = 'Tombo_levelcom', as.data.frame(Tombo_levelcom_WGA)),
+                      data.frame(Category = 'Tombo_modelcom', as.data.frame(Tombo_modelcom_WGA)),
+                      data.frame(Category = 'mCaller', as.data.frame(mCaller_WGA)),
+                      data.frame(Category = 'Nanodisco', as.data.frame(Nanodisco_WGA)),
+                      data.frame(Category = 'Dorado', as.data.frame(Dorado_WGA)),
+                      data.frame(Category = 'Hammerhead', as.data.frame(Hammerhead_WGA))) %>%
+  drop_na()
+
+p4 <- ggplot(data.1448AWGA, aes(x=Value, y=Category, fill=Category)) +
+  geom_density_ridges(color = NA) +
+  theme_ridges() + 
+  scale_fill_manual(values = c("#98B85D","#7262AC","#AC667E","#287c9e","#BDA96F","#a9a9a9","#e29578"))+
+  theme_ipsum() +
+  ylab("Density") +
+  xlab("Assigned Fraction Probability") +
+  ggtitle("1448AWGA Assigned Fraction Distribution") +
+  theme(legend.position = "none")
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/1448AWGA.pdf", p4, width = 8, height = 6, font="Arial")
+
+library(gridExtra)
+g <- p1+p2+p3+p4
+ggsave(file="sites_value_distri0424.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/distribution",g, width = 15, height = 13)
+rm(data.1448AWGA)
+```
+
+Then, we call the motifs.
+
+## Motif distributions in 1448A
+
+### Get the motifs
+####Run_MEME
+```{r}
+library(memes)
+library(seqinr)
+library(GenomicRanges)
+library(rtracklayer)
+library(magrittr)
+library(universalmotif)
+library(Biostrings)
+library(BSgenome)
+library(ggplot2)
+library(tidyr)
+library(gridExtra)
+
+# load fastq file and make it into stringset, ready for get_sequence
+fasta_file <- "/Users/lubeifang/Desktop/BIOTOOLS/ref/1448A_formeme.fasta"
+psph_stringset <- readDNAStringSet(fasta_file)
+
+# define how to meme search
+# We can change the batch search size for fasta and meme search way
+get.meme <- function(sorted){
+    sorted <- sorted[sorted$Position >= 20, ]
+    bed <- data.frame(chr=sorted$Chromosome,
+                      start=sorted$Position-1,
+                      end=sorted$Position,
+                      Starnd=sorted$Strand)
+    gR <- GRanges(seqnames = bed$chr,
+                  ranges = IRanges(start = bed$start, end = bed$end),
+                  strand = "*")
+    # resize ranges
+    gRr <- resize(gR,30, "center") 
+    sequences <- get_sequence(gRr, psph_stringset)
+    # unique(width(gRr))
+    # s <- data.frame(sequences)
+  meme_results <- runStreme(sequences,control = "shuffle", minw = 5, maxw = 19, nmotifs = 6)
+  return(meme_results)
+}
+
+
+# Do the MEME
+# set how many sites we would like to include
+top = 10000
+plot_list <- list()
+meme_results.df <- data.frame()
+top10k.df <- data.frame()
+dataset.name <- c("SMRT", "Tombo_levelcom", "Tombo_modelcom", "Nanodisco", "Tombo_denovo", "mCaller", "Dorado","Hammerhead")
+
+for (i in dataset.name){
+  print(i) 
+#  i = "Hammerhead"
+  file <- get(i)
+  if (i == "mCaller" | i == "Dorado"){
+    sorted1 <- file[order(file$Value, decreasing = T),][1:top,] # bigger to smaller
+  }
+  else{
+    sorted1 <- inner_join(file, Asites, by = c("Chromosome","Position","Strand"))
+    # Order it by Value, and get first top sites file
+    sorted1 <- file[order(file$Value, decreasing = T),][1:top,] # bigger to smaller
+  }
+  sorted1 <- drop_na(sorted1) # SMRT for 0104LOSS have only 2873 rows
+  
+  # did this after peaks annotation, this only considered chromosome one.
+#  temp <- data.frame(name = i, data.frame(inner_join(motif.peak.df, sorted1[sorted1$Chromosome=="chromosome"],
+#                                                        by = c("Position"))))
+  top10k.df <- rbind(top10k.df, data.frame(name = i, data.frame(sorted1)))
+  
+  meme_results <- get.meme(sorted1)
+  meme_results.df <- rbind(meme_results.df, as.data.frame(Tool = i, data.frame(meme_results)))
+  plot <- meme_results %>%
+    to_list() %>%
+    view_motifs()
+  name=paste0(i,"_",top,"motif")
+  plot <- plot + ggtitle(name)
+  plot_list[[length(plot_list) + 1]] <- plot
+}
+
+# plot <- meme_results.df %>% 
+#   to_list() %>% 
+#   view_motifs()
+
+g <- arrangeGrob(grobs = plot_list, nrow=2) 
+ggsave(file="1448AWT_10000_6motifs.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/F2_table2motif/",g, width = 32, height = 18)
+
+# to_list(meme_results.df)
+motif_detail <- meme_results.df[,c(-1,-17)]
+write.csv(motif_detail,"/Users/lubeifang/Desktop/Benchmark/Figure/F2_table2motif/1448AWT_10k_6motifs_memeresults.csv")
+rm(get.meme)
+
+count_data <- aggregate(Position ~ name + Chromosome + Strand, data = top10k.df, FUN = length)
+
+# ggplot(count_data[count_data$name!="SMRT",], aes(x=name, y=Position, fill=Chromosome)) +   
+ggplot(count_data[count_data$name!="SMRT",], aes(x=name, y=Position, fill=Strand)) + 
+  geom_bar(position="stack", stat = "identity") +
+  scale_fill_manual(values = c("#E7BCC6","#FDCF9E"))+
+#  scale_fill_manual(values = c("#8A8DBF","#E7BCC6","#FDCF9E"))+
+  theme_classic()+
+  theme(axis.text.y = element_blank()) +
+  theme(axis.text.x =element_text(angle =90,hjust = 1,vjust = 0.5)) +
+  ylab("Counts") +
+  xlab("") +
+  ggtitle("Chromosome distribution of Top 10k sites predicted by each tools")
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/1448AWT_top10kdistri_strand.pdf", width = 8, height = 6, font="Arial")
+```
+
+### 1448A two types of motifs
+#### ALL motifs
+```{R}
+library(ChIPseeker)
+library(ChIPpeakAnno)
+library(clusterProfiler)
+require(GenomicFeatures)
+library(GenomicRanges)
+
+# load annotation
+ps_txdb <- makeTxDbFromGFF("/Users/lubeifang/Desktop/BIOTOOLS/ref/CHIPPEAKANNO/1448A_peak.gff")
+annoData <- toGRanges(ps_txdb, feature="gene")
+
+# Only consider Chromosome here
+top10k.peak = data.frame()
+dataset.name <- c("Tombo_levelcom", "Tombo_modelcom", "Nanodisco", "Tombo_denovo", "mCaller", "Dorado","Hammerhead")
+for (i in dataset.name){
+  print(i)
+  peak <- top10k.df[top10k.df$Chromosome == "chromosome" & top10k.df$name == i,]
+  peak_gr <- GRanges(seqnames="chr1",
+                   ranges=IRanges(start=as.numeric(as.matrix(peak[,3]-1)),
+                                  end= as.numeric(as.matrix(peak[,3])),
+                                  names=as.matrix(as.matrix(peak[,1]))))
+  annotatedpeak <- annotatePeakInBatch(peak_gr, AnnotationData=annoData)
+  top10k.peak = rbind(top10k.peak, data.frame(Tool = i, as.data.frame(annotatedpeak)))
+}
+
+peak <- MotifT1_peak[MotifT1_peak$V1 == "refseq|NC_005773.3|chromosome",]
+peak_gr <- GRanges(seqnames="chr1",
+                   ranges=IRanges(start=as.numeric(as.matrix(peak[,2])),
+                                  end= as.numeric(as.matrix(peak[,3])),
+                                  names=as.matrix(as.matrix(peak[,1]))))
+annotatedpeak <- annotatePeakInBatch(peak_gr, AnnotationData=annoData)
+df1 = as.data.frame(annotatedpeak)
+
+peak <- MotifT2_peak[MotifT2_peak$V1 == "refseq|NC_005773.3|chromosome",]
+
+peak_gr <- GRanges(seqnames="chr1",
+                     ranges=IRanges(start=as.numeric(as.matrix(peak[,2])),
+                                    end= as.numeric(as.matrix(peak[,3])),
+                                    names=as.matrix(as.matrix(peak[,4]))))
+annotatedpeak <- annotatePeakInBatch(peak_gr, AnnotationData=annoData)
+df2 = as.data.frame(annotatedpeak)
+
+motif.peak.df <- rbind(data.frame(name = "Type 1 Motif", as.data.frame(df1)),
+                       data.frame(name = "Type 2 Motif", as.data.frame(df2)))
+colnames(motif.peak.df)[4] <- "Position"
+
+ggplot(motif.peak.df, aes(x=distancetoFeature, group=name, fill=name)) +
+  geom_histogram(alpha = 0.6, binwidth = 20) +
+  theme_bw() +
+#    facet_wrap(~name) +
+  theme(
+    legend.position = c(0.9,0.9),
+    legend.title = element_blank())+
+    # axis.text.x = element_text(family="Arial", size = 12),
+    # axis.text.y = element_text(family="Arial", size = 12),
+    # axis.title.x = element_text(family="Arial", size = 12),
+    # axis.title.y = element_text(family="Arial", size = 12)) +
+  scale_fill_manual(values = c("#98B85D","#AC667E")) +
+  xlab("Distance to Start Codon") +
+  ylab("Count") +
+  xlim(-2000,4000)+
+  ggtitle("Two Types of Motifs in 1448A") 
+ # geom_text(aes(label=paste0(" Type 1 motifs : 2791\nType 2 motifs : 229"), x = Inf, y = Inf), x = 2000, y = 40, size = 3, color = "black", family="Arial")
+
+# extrafont::font_import()
+# extrafont::loadfonts()
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F2_table2motif/motif_distribution.pdf", width = 6, height = 4)
+
+
+# Distribution of motifs in chromosome and plasmids
+# library(plotrix)
+temp <- as.data.frame(table(MotifT1_peak$V1))
+label <- c("chromosome", "large plasmids", "small plasmids")
+pie3D(x=temp$Freq,
+      main="Type 1 motif",
+      col = c("#8A8DBF","#E7BCC6","#FDCF9E"),
+      border = "white",
+      labels=paste0(label,"\n","n=",temp$Freq),
+      labelcex = 0.8)
+
+
+
+```
+
+#### Top 10k sites distribution
+```{R}
+# how many Motifs did they found
+colnames(top10k.peak)
+temp <- top10k.peak[,c(1,13)]
+
+# count how many sites of each tools got
+count_data <- aggregate(distancetoFeature ~ Tool, data = temp, FUN = length)
+
+ggplot(temp, aes(x=distancetoFeature, group=Tool, fill=Tool)) +
+  geom_histogram(alpha = 0.6, binwidth = 30, color = "#CFCFE5") +
+#  geom_density(alpha = 0.6, color = NA) +
+  theme_bw() +
+  facet_wrap(~Tool, nrow = 2) +
+  theme(
+    legend.position = "none",
+    legend.title = element_blank(),
+    axis.text.x = element_text(family="Arial", size = 6),
+    axis.text.y = element_text(family="Arial", size = 12),
+    axis.title.x = element_text(family="Arial", size = 12),
+    axis.title.y = element_text(family="Arial", size = 12),
+    strip.background = element_rect(colour="black", fill="#C6AEBA")) +
+#  scale_fill_manual(values = c("#98B85D","#AC667E")) +
+  xlab("Distance to Start Codon") +
+  ylab("Count") +
+  ggtitle("Top 10k sites distribution of start codon in 1448A") +
+  geom_text(data = count_data, aes(label = paste("Sites number : ",distancetoFeature), x = Inf, y = Inf), hjust = 1.05, vjust = 1.5, size = 3, color = "black") +
+  xlim(-1000,2000)
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/distribution/1448AWT_top10kdistri_start.pdf", width = 10, height = 6, font="Arial")
+
+```
+
+#### motif enrich sites and pvalue
+```{R}
+motif_detail
+dataset.name <- c("Tombo_levelcom", "Tombo_modelcom", "Nanodisco", "Tombo_denovo", "mCaller", "Dorado","Hammerhead")
+tool_detail <- data.frame(name=rep(c("SMRT", "Tombo_levelcom", "Tombo_modelcom", "Nanodisco", "Tombo_denovo", "mCaller", "Dorado","Hammerhead"),2),
+                          type=c(rep(c("Type 1 Motif"),8),rep(c("Type 2 Motif"),8)),
+                          nsites=as.numeric(c("2876","2301","0","942","0","0","2523","4416","215","1044","762","266","0","0","77","204")),
+                          pval=as.numeric(c("1.8e-110","7.1e-66","0","5.3e-21","0","0","4.9e-66","2.2e-113","6.2e-5","1.6e-15","8.1e-14","1e-7","0","0","0.0058","0.0082")))
+
+tool_detail<-subset(tool_detail, name!="SMRT")
+tool_detail$pval <- round(-log(tool_detail$pval,10),2)
+tool_detail[tool_detail=="Inf"] <- "0"
+tool_detail$pval <- as.numeric(tool_detail$pval)
+
+type1_data <- tool_detail[tool_detail$type == "Type 1 Motif", ]
+type2_data <- tool_detail[tool_detail$type == "Type 2 Motif", ]
+
+
+ggplot() +
+  geom_point(data = type1_data, aes(x = name, y = nsites), color = "#98B85D", size = 4) +
+  geom_point(data = type2_data, aes(x = name, y = nsites), color = "#AC667E", size = 4) +
+  geom_line(data = rbind(type1_data, type2_data), aes(x = name, y = nsites, group = type), color = "grey") +
+  theme_bw() +
+  theme(axis.text.x = element_text(family="Arial", size = 10, angle = 90),
+        axis.text.y = element_text(family="Arial", size = 10)) +
+  xlab("") +
+  ylab("Motif enriched sites")
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F2_table2motif/1448AWT_moitf_nsite.pdf", width = 7, height = 5, font="Arial")
+
+ggplot() +
+  geom_point(data = type1_data, aes(x = name, y = pval), color = "#98B85D", size = 4) +
+  geom_point(data = type2_data, aes(x = name, y = pval), color = "#AC667E", size = 4) +
+  geom_line(data = rbind(type1_data, type2_data), aes(x = name, y = pval, group = type), color = "grey") +
+  theme_bw() +
+  theme(axis.text.x = element_text(family="Arial", size = 10, angle = 90),
+        axis.text.y = element_text(family="Arial", size = 10)) +
+  xlab("") +
+  ylab("Motif enriched -log(p-value)")
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F2_table2motif/1448AWT_moitf_pval.pdf", width = 7, height = 5)
+
+```
+
+
+
+We will focus on the sites then
+
+## Sites comparison
+### functions define
+#### 5mer-shift
+```{r}
+# define two functions
+# get a 5-mer of SMRT position
+get.5mer.df <- function(df){
+  df1 <- df
+  df1$Position <- df1$Position + 1
+  df2 <- df
+  df2$Position <- df2$Position + 2
+  df3 <- df
+  df3$Position <- df3$Position - 1
+  df4 <- df
+  df4$Position <- df4$Position - 2
+  df5 <- rbind(df1,df2,df3,df4,df) %>%
+    arrange(desc(OriginalValue)) %>%
+    distinct(Position,Strand,Chromosome, .keep_all = T)
+  return(df5)
+}
+
+
+```
+
+####get.trim.df.A
+```{R}
+# Compare to groundtruth
+# 1448A chromosome, large plasmid and small plasmid have 1.22e7 nt in both strands
+# 1448A chromosome, large plasmid and small plasmid have 2.6e6 A in both strands
+
+# for mCaller, Dorado, they are singel mode and A only, so the don't need shift
+get.trim.df.A <- function(preds_df, gt_df) {
+  TP1 <- c()
+  FN1 <- c() 
+  FP1 <- c()
+  TN1 <- c()
+  TPR1 <- c()
+  TNR1 <- c()
+  FPR1 <- c()
+  precision1 <- c()
+  recall1 <- c()
+  F1score1 <- c()
+  rank1 <- c()
+  originalvalue1 <- c()
+  value1 <- c()
+  
+  cutoffs <- seq(log10(1), log10(2.573e6), length.out = 200) # for A
+  cutoffs <- 10^cutoffs
+  
+  for (cutoff in cutoffs) {
+    print(cutoff)
+    preds <- subset(preds_df, Rank <= cutoff) # if it is rank, make sure <=; if it is fraction, make sure >=
+    rank1 <- c(rank1,nrow(preds))
+    value1 <- c(value1,min(preds$Value))
+    originalvalue1 <- c(originalvalue1,min(preds$OriginalValue))
+    intersection <- inner_join(preds, gt_df, by = c("Position", "Chromosome", "Strand"))
+    TP <- nrow(intersection)
+    TP1 <- c(TP1,TP)
+    union <- rbind(preds,gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(Asites, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    FP = nrow(preds)-TP
+    FP1 <- c(FP1,FP)
+    FN = nrow(gt_df)-TP
+    FN1 <- c(FN1,FN)
+    precision = TP/nrow(preds)
+    precision1 <- c(precision1, precision)
+    recall = TP/nrow(gt_df)
+    recall1 <- c(recall1, recall)
+    F1score = 2*precision*recall/(precision+recall)
+    F1score1 <- c(F1score1,F1score)
+    TPR1 <- c(TPR1, TP/(TP+FN))
+    TNR1 <- c(TNR1, TN/(TN+FP))
+    FPR1 <- c(FPR1, FP/(FP+TN))
+  }
+  plot1 <- data.frame(Cutoff = cutoffs, Rank = rank1, Value = value1, OriginalValue = originalvalue1, TP = TP1, FN = FN1, FP = FP1, TN = TN1, Precision = precision1, Recall = recall1, F1score = F1score1, TPR = TPR1, TNR = TNR1, FPR = FPR1) 
+  return(plot1)
+} 
+
+```
+
+####get.trim.df.ATCG
+```{R}
+# For ATCG tools
+get.trim.df.ATCG <- function(preds_df, gt_df) {
+  
+  gt_df_5mer <- get.5mer.df(gt_df)
+  
+  TP1 <- c()
+  FN1 <- c() 
+  FP1 <- c()
+  TN1 <- c()
+  TPR1 <- c()
+  TNR1 <- c()
+  FPR1 <- c()
+  precision1 <- c()
+  recall1 <- c()
+  F1score1 <- c()
+  rank1 <- c()
+  originalvalue1 <- c()
+  value1 <- c()
+  
+  cutoffs <- seq(log10(1), log10(1.223e7), length.out = 200) # for ATCG
+  cutoffs <- 10^cutoffs
+  
+  for (cutoff in cutoffs) {
+    print(cutoff)
+    preds <- subset(preds_df, Rank <= cutoff) # if it is rank, make sure <=; if it is fraction, make sure >=
+    rank1 <- c(rank1,nrow(inner_join(preds, Asites, by = c("Chromosome","Position","Strand"))))
+    value1 <- c(value1,min(preds$Value))
+    originalvalue1 <- c(originalvalue1,min(preds$OriginalValue))
+
+    intersection1 <- inner_join(preds, gt_df_5mer, by = c('Position','Chromosome','Strand'))
+    TP_precision = nrow(intersection1)
+    TP1 <- c(TP1,TP_precision)
+    union <- rbind(preds,gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(Asites, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    FP = nrow(preds)-TP_precision
+    FP1 <- c(FP1,FP)
+    
+    union <- rbind(preds,gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(Asites, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    
+    b <- get.5mer.df(preds)
+    intersection2 <- inner_join(b, gt_df, by = c('Position','Chromosome','Strand'))
+    TP_recall = nrow(intersection2)
+    FN = nrow(gt_df)-TP_recall
+    FN1 <- c(FN1,FN)
+    
+    precision = TP_precision/nrow(preds)
+    precision1 <- c(precision1, precision)
+    recall = TP_recall/nrow(gt_df)
+    recall1 <- c(recall1, recall)
+    F1score = 2*precision*recall/(precision+recall)
+    F1score1 <- c(F1score1,F1score)
+    TPR1 <- c(TPR1, TP_precision/(TP_precision+FN))
+    TNR1 <- c(TNR1, TN/(TN+FP))
+    FPR1 <- c(FPR1, FP/(FP+TN))
+  }
+  plot1 <- data.frame(Cutoff = cutoffs, Rank = rank1, Value = value1, OriginalValue = originalvalue1, TP = TP1, FN = FN1, FP = FP1, TN = TN1, Precision = precision1, Recall = recall1, F1score = F1score1, TPR = TPR1, TNR = TNR1, FPR = FPR1) 
+  return(plot1)
+} 
+
+```
+
+Get trimed.df and draw F1 score
+### trimed.df calculated
+```{r}
+dataset.name <- c("Dorado", "Hammerhead", "mCaller", "Nanodisco", "Tombo_denovo", "Tombo_levelcom", "Tombo_modelcom" )
+dataset.name <- c("Hammerhead", "Nanodisco")
+trimed.df <- data.frame()
+for (name in dataset.name){
+  print(name)
+  df <- get(name)
+  # single mode
+  if (name == "Dorado" | name == "mCaller"){
+      # Tombo_denovo and Hammerhead, they are ATCG and single mode, shift and 1.2e7 cutoffs
+    trimed_temp <-  get.trim.df.A(df, SMRT)
+    trimed.df <- rbind(trimed.df, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  }
+  else{
+    df <- get(name)
+    trimed_temp <-  get.trim.df.ATCG(df, SMRT)
+    trimed.df <- rbind(trimed.df, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  }
+  rm(trimed_temp)
+  trimed.df[is.na(trimed.df)] <- 0
+}
+  
+
+write.csv(trimed.df,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AWT.trimed.df0429_alltools.csv")
+
+```
+
+## plot figures
+### F1 score
+```{R}
+library(gridExtra)
+library(patchwork)
+# plot F1 score curve
+# max_points <- trimed.df %>%
+#   filter(Tool %in% c("SMRT", "Dorado")) %>%
+#   group_by(Tool) %>%
+#   filter(F1score == max(F1score))
+
+p <- ggplot(trimed.df, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  ggtitle("1448AWT F1 score") +
+  theme_light() +
+  xlab("A sites") +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#98B85D","#7262AC","#AC667E","#BDA96F","#287c9e","#a9a9a9","#e29578"))
+  # geom_text(data = max_points[1, ], aes(label = paste("SMRT Cutoff =", Cutoff, "\nMax F1score =", F1score)), x =0.8, y=1 , color = "black", fontface = "bold") +
+  # geom_text(data = max_points[2, ], aes(label = paste("Dorado Cutoff =", Cutoff, "\nMax F1score =", F1score)), x = 0.8, y=0.8, color = "black", fontface = "bold") +
+  # ylim(0,1)
+
+pp <- ggplot(trimed.df, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.5) +
+#  geom_point(size = 0.2, color = "grey") +
+  theme_bw() +
+  theme(legend.position="none")+
+  scale_color_manual(values = c("#98B85D","#7262AC","#AC667E","#BDA96F","#287c9e","#a9a9a9","#e29578")) +
+    xlim(0,20000)+
+  xlab("")+
+  ylab("")
+p1 <- p + inset_element(pp, left = 0.3, bottom = 0.3, right = 0.95, top = 0.95) 
+p1
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AWT_f1score0429.pdf", plot = p, width = 7, height = 4.5)
+
+```
+
+### PRC and ROC
+```{R}
+
+p2<-ggplot(trimed.df, aes(x=Recall, y=Precision, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  ggtitle("1448AWT PRC") +
+  theme_light() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#98B85D","#7262AC","#AC667E","#BDA96F","#287c9e","#a9a9a9","#e29578"))
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AWT_PRC0429.pdf", width = 7, height = 4.5)
+
+p3<-ggplot(trimed.df, aes(x=FPR, y=TPR, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  ggtitle("1448AWT ROC") +
+  theme_light() +
+    theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    axis.text.x = element_text(family = "Arial", size = 10),
+    axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  )+
+  scale_color_manual(values = c("#98B85D","#7262AC","#AC667E","#BDA96F","#287c9e","#a9a9a9","#e29578"))
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AWT_ROC0429.pdf", width = 7, height = 4.5)
+
+plot1 <- p1+p2+p3
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AWT_alltools0429.pdf", plot1, width = 13, height = 4.3)
+```
+
+### Get the best F1 score
+```{R}
+dataset.name <- c("Dorado", "mCaller", "Tombo_denovo", "Tombo_levelcom", "Tombo_modelcom" )
+best.df <- data.frame()
+
+trimed.df <- trimed.df.WT
+trimed.df <- trimed.df.MU
+# Give a dataframe of best F1 with cutoff
+for (k in dataset.name){
+  # Get the row of best F1 score
+  df.cate <- subset(trimed.df, Tool == k)
+  df.cate <- subset(df.cate,F1score == max(df.cate$F1score))
+  best.df.temp <- df.cate[order(df.cate$OriginalValue, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestF1", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+  # Get the row of best Recall score
+  df.cate <- subset(trimed.df, Tool == k) 
+  df.cate <- subset(df.cate,Recall == max(df.cate$Recall))
+  best.df.temp <- df.cate[order(df.cate$Recall, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestRecall", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+  # Get the row of best Precision score
+  df.cate <- subset(trimed.df, Tool == k) 
+  df.cate <- subset(df.cate,Precision == max(df.cate$Precision))
+  best.df.temp <- df.cate[order(df.cate$Precision, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestPrecision", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+}
+rm(best.df.temp, df.cate)
+
+```
+
+## Outliers
+```{R}
+library(ggVennDiagram)
+library(ggrepel)
+dataset.name <- c("Dorado",  "mCaller", "Tombo_denovo", "Tombo_levelcom", "Tombo_modelcom")
+
+plot_list <- list()
+outlier.df <- data.frame()
+# SMRT_5mer <- get.5mer.df(SMRT)
+for (i in dataset.name){
+  print(i)
+  bestf1_V <- best.df[best.df$Tool == i & best.df$Type == "BestF1",]$Value
+  
+  # df <- get(i)
+  df <- get(paste0(i,"_MU"))
+  df_WGA <- get(paste0(i,"_WGA"))
+  
+  WT_temp <- subset(df, Value >= bestf1_V)
+  WT_temp <- inner_join(WT_temp, Asites, by = c("Position", "Chromosome", "Strand"))
+  WGA_temp <- subset(df_WGA, Value >= bestf1_V)
+  WGA_temp <- inner_join(WGA_temp, Asites, by = c("Position", "Chromosome", "Strand"))
+
+  outliers <- nrow(WGA_temp)
+  temp <- inner_join(WT_temp, WGA_temp, by = c("Position", "Chromosome", "Strand"))
+#  temp <- inner_join(WGA_temp, SMRT_5mer, by = c("Position", "Chromosome", "Strand"))
+  # temp_SMRT <- inner_join(WGA_temp, SMRT, by = c("Position", "Chromosome", "Strand"))
+  temp_SMRT <- inner_join(WGA_temp, SMRT_MU, by = c("Position", "Chromosome", "Strand"))
+  
+  x <- list(MU = paste0(WT_temp$Chromosome,WT_temp$Position,WT_temp$Strand),
+          WGA = paste0(WGA_temp$Chromosome,WGA_temp$Position,WGA_temp$Strand),
+          #SMRT = paste0(SMRT_5mer$Chromosome,SMRT_5mer$Position,SMRT_5mer$Strand))
+          SMRT = paste0(SMRT_MU$Chromosome,SMRT_MU$Position,SMRT_MU$Strand))
+  p <- ggVennDiagram(x, label_alpha = 0, edge_size = 0.3) +
+    scale_fill_gradient(low="white",high = "#C6AEBA") +
+    theme(legend.position = "none")
+  p <- p + ggtitle(i)
+  plot_list[[length(plot_list) + 1]] <- p
+  
+  outlier.df <- rbind(outlier.df, data.frame(Tool = i, WT = nrow(WT_temp), WGA = nrow(WGA_temp), inter = nrow(temp),
+                                             FCR = nrow(temp)/nrow(WGA_temp), ODR = nrow(WGA_temp)/nrow(WT_temp),
+                                             OiGT = nrow(temp_SMRT)))
+}
+
+g <- arrangeGrob(grobs = plot_list, nrow=3) 
+g <- arrangeGrob(grobs = plot_list, nrow=2) 
+ggsave(file="outliers_MU0611.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/F4_outlier/",g, width = 8, height = 10)
+
+
+
+ggplot(outlier.df, aes(x=log(WGA,10), y=log(OiGT,10), size = FCR, color = Tool)) +
+  geom_point(alpha=2) +
+  theme_light() +
+  xlab("log(WGA numbers)") +
+  ylab("log(WGA in Ground Truth)") +
+  geom_text_repel(aes(label = Tool), size = 4, vjust = 0) + 
+#  theme(legend.position = "bottom") + 
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578"))
+
+ggsave(file="bubble0430.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/F4_outlier/", width = 7, height = 5)
+``` 
+
+## non-found position
+The sites that have not been found in all tools but verified in SMRT
+```{R}
+# Sites under best F1 score
+dataset.name <- c("Dorado", "mCaller", "Tombo_denovo", "Tombo_levelcom", "Tombo_modelcom")
+
+# only contains A
+best.pred.df <- data.frame()
+
+for (i in dataset.name){
+  print(i)
+  bestf1_V <- best.df[best.df$Tool == i & best.df$Type == "BestF1",]$Value
+  
+  df <- get(i)
+  temp <- subset(df, Value >= bestf1_V)
+  temp <- inner_join(temp, Asites, by = c("Position", "Chromosome", "Strand"))
+  
+  best.pred.df <- rbind(best.pred.df, data.frame(Tool = i, as.data.frame(temp)))
+}
+best.pred.df$all <- paste0(best.pred.df$Chromosome,best.pred.df$Position,best.pred.df$Strand)
+# write.csv(best.pred.df, "/Users/lubeifang/Desktop/Benchmark/intermediateFILE/bestPredsites.csv",row.names = F)
+  
+# same sites
+# intersection <- inner_join(best.pred.df[best.pred.df$Tool=="Dorado",],
+#                            best.pred.df[best.pred.df$Tool=="Hammerhead",],
+#                            by = c("Position", "Chromosome", "Strand"))
+# intersection <- inner_join(intersection,
+#                           best.pred.df[best.pred.df$Tool=="mCaller",],
+#                           by = c("Position", "Chromosome", "Strand"))
+# After two tools, the intersection only remained 1
+#                            best.pred.df[best.pred.df$Tool=="Nanodisco",],
+#                            best.pred.df[best.pred.df$Tool=="Tombo_denovo",],
+#                            best.pred.df[best.pred.df$Tool=="Tombo_levelcom",],
+#                            best.pred.df[best.pred.df$Tool=="Tombo_modelcom",], 
+
+
+# all sites
+no_sites <- anti_join(SMRT_5mer, best.pred.df,by = c("Position", "Chromosome", "Strand"))
+no_sites <- anti_join(SMRT, WT_temp,by = c("Position", "Chromosome", "Strand"))
+no_sites_SMRT <- anti_join(MotifT1, SMRT,by = c("Position", "Chromosome", "Strand"))
+no_T1 <- anti_join(MotifT1, SMRT, best.pred.df,by = c("Position", "Chromosome", "Strand"))
+no_T2 <- anti_join(MotifT2, SMRT, best.pred.df,by = c("Position", "Chromosome", "Strand"))
+no_motif <- rbind(data.frame(Type="Type1", as.data.frame(no_T1)),
+                  data.frame(Type="Type2", as.data.frame(no_T2)))
+found <- inner_join(MotifT1, best.pred.df,by = c("Position", "Chromosome", "Strand"))
+write.csv(no_sites, "/Users/lubeifang/Desktop/Benchmark/intermediateFILE/neverfoundinONT.csv",row.names = F)
+
+x = list(Dorado = as.character(unique(best.pred.df[best.pred.df$Tool=="Dorado" ,]$all)),
+ #        Hammerhead = as.character(unique(best.pred.df[best.pred.df$Tool=="Hammerhead" ,]$all)),
+         mCaller = as.character(unique(best.pred.df[best.pred.df$Tool=="mCaller" ,]$all)),
+ #        Nanodisco = as.character(unique(best.pred.df[best.pred.df$Tool=="Nanodisco" ,]$all)),
+         Tombo_denovo = as.character(unique(best.pred.df[best.pred.df$Tool=="Tombo_denovo" ,]$all)),
+         Tombo_levelcom = as.character(unique(best.pred.df[best.pred.df$Tool=="Tombo_levelcom" ,]$all)),
+         Tombo_modelcom = as.character(unique(best.pred.df[best.pred.df$Tool=="Tombo_modelcom" ,]$all)),
+         ASMRT = paste0(SMRT$Chromosome,SMRT$Position,SMRT$Strand))
+ #       ASMRT_5mer = paste0(SMRT_5mer$Chromosome,SMRT_5mer$Position,SMRT_5mer$Strand))
+         # Type1motif = paste0(MotifT1$Chromosome,MotifT1$Position,MotifT1$Strand),
+         # Type2motif = paste0(MotifT2$Chromosome,MotifT2$Position,MotifT2$Strand))
+
+ggVennDiagram(x, force_upset = TRUE, order.set.by = "name", order.intersect.by = "none")
+
+# table(best.pred.df$Tool)
+ggsave(file="upset0430.pdf", path = "/Users/lubeifang/Desktop/Benchmark/Figure/F4_outlier/", width = 10, height = 5)
+```
+
+## non-found Motif in chr
+```{R}
+library(ChIPseeker)
+library(ChIPpeakAnno)
+library(clusterProfiler)
+require(GenomicFeatures)
+library(GenomicRanges)
+
+# load annotation
+ps_txdb <- makeTxDbFromGFF("/Users/lubeifang/Desktop/BIOTOOLS/ref/CHIPPEAKANNO/1448A_peak.gff")
+annoData <- toGRanges(ps_txdb, feature="gene")
+
+# Only consider Chromosome here
+peak <- no_motif[no_motif$Chromosome == "chromosome",]
+peak <- no_sites_T2[no_sites_T2$Chromosome == "chromosome",]
+peak_gr <- GRanges(seqnames="chr1",
+                   ranges=IRanges(start=as.numeric(as.matrix(peak[,3]-1)),
+                                  end= as.numeric(as.matrix(peak[,3])),
+                                  names=as.matrix(as.matrix(peak[,1]))))
+annotatedpeak <- annotatePeakInBatch(peak_gr, AnnotationData=annoData)
+annotate_df = as.data.frame(annotatedpeak)
+write.csv(annotate_df, "/Users/lubeifang/Desktop/Benchmark/intermediateFILE/neverfoundinONT_anno.csv",row.names = F)
+
+
+```

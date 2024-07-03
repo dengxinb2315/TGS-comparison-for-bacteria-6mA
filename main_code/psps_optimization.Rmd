@@ -1,0 +1,292 @@
+#OPTIMIZATION
+##FUCTIONS
+####get.trim.df.LOSTA
+```{R}
+# Compare to groundtruth
+# For all ATCG predict tools
+# 1448A chromosome, large plasmid and small plasmid have 1.22e7 nt in both strands
+
+# for mCaller, Dorado, they are singel mode and A only, so the don't need shift
+# for single mode, they need to find the LOST sites of WT when compare to KO
+get.trim.df.LOSTA <- function(preds_WT, preds_KO, gt_df) {
+  TP1 <- c()
+  FN1 <- c() 
+  FP1 <- c()
+  TN1 <- c()
+  TPR1 <- c()
+  TNR1 <- c()
+  FPR1 <- c()
+  precision1 <- c()
+  recall1 <- c()
+  F1score1 <- c()
+  rank1 <- c()
+  originalvalue1 <- c()
+  value1 <- c()
+  
+  cutoffs <- seq(log10(1), log10(2.573e6), length.out = 200) # for ATCG
+  cutoffs <- 10^cutoffs
+  
+  
+  for (cutoff in cutoffs) {
+    print(cutoff)
+    preds_WT_temp <- subset(preds_WT, Rank <= cutoff) # if it is rank, make sure <=; if it is fraction, make sure >=
+    preds_KO_temp <- subset(preds_KO, OriginalValue >= min(preds_WT_temp$OriginalValue))
+    preds <- anti_join(preds_WT_temp, preds_KO_temp, by = c("Position", "Chromosome", "Strand"))
+    rank1 <- c(rank1,nrow(preds_WT_temp))
+    value1 <- c(value1,min(preds_WT_temp$Value))
+    originalvalue1 <- c(originalvalue1,min(preds_WT_temp$OriginalValue))
+    
+    intersection <- inner_join(preds, gt_df, by = c("Position", "Chromosome", "Strand"))
+    TP <- nrow(intersection)
+    TP1 <- c(TP1,TP)
+    union <- rbind(preds,gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(Asites, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    FP = nrow(preds)-TP
+    FP1 <- c(FP1,FP)
+    FN = nrow(gt_df)-TP
+    FN1 <- c(FN1,FN)
+    precision = TP/nrow(preds)
+    precision1 <- c(precision1, precision)
+    recall = TP/nrow(gt_df)
+    recall1 <- c(recall1, recall)
+    F1score = 2*precision*recall/(precision+recall)
+    F1score1 <- c(F1score1,F1score)
+    TPR1 <- c(TPR1, TP/(TP+FN))
+    TNR1 <- c(TNR1, TN/(TN+FP))
+    FPR1 <- c(FPR1, FP/(FP+TN))
+  }
+  plot1 <- data.frame(Cutoff = cutoffs, Rank = rank1, Value = value1, OriginalValue = originalvalue1, TP = TP1, FN = FN1, FP = FP1, TN = TN1, Precision = precision1, Recall = recall1, F1score = F1score1, TPR = TPR1, TNR = TNR1, FPR = FPR1) 
+  return(plot1)
+} 
+
+```
+
+
+####get.trim.df.LOSTATCG
+```{R}
+# for mCaller, Dorado, they are singel mode and A only, so the don't need shift
+# for single mode, they need to find the LOST sites of WT when compare to KO
+get.trim.df.LOSTATCG <- function(preds_WT, preds_KO, gt_df) {
+  
+  gt_df_5mer <- get.5mer.df(gt_df)
+  
+  TP1 <- c()
+  FN1 <- c() 
+  FP1 <- c()
+  TN1 <- c()
+  TPR1 <- c()
+  TNR1 <- c()
+  FPR1 <- c()
+  precision1 <- c()
+  recall1 <- c()
+  F1score1 <- c()
+  rank1 <- c()
+  originalvalue1 <- c()
+  value1 <- c()
+  
+  cutoffs <- seq(log10(1), log10(1.223e7), length.out = 200) # for ATCG
+  cutoffs <- 10^cutoffs
+  
+  for (cutoff in cutoffs) {
+    print(cutoff)
+    preds_WT_temp <- subset(preds_WT, Rank <= cutoff) # if it is rank, make sure <=; if it is fraction, make sure >=
+    preds_KO_temp <- subset(preds_KO, OriginalValue >= min(preds_WT_temp$OriginalValue))
+    preds <- anti_join(preds_WT_temp, preds_KO_temp, by = c("Position", "Chromosome", "Strand"))
+    rank1 <- c(rank1,nrow(inner_join(preds_WT_temp, Asites, by = c("Chromosome","Position","Strand"))))
+    value1 <- c(value1,min(preds_WT_temp$Value))
+    originalvalue1 <- c(originalvalue1,min(preds_WT_temp$OriginalValue))
+    intersection1 <- inner_join(preds, gt_df_5mer, by = c('Position','Chromosome','Strand'))
+    TP_precision = nrow(intersection1)
+    TP1 <- c(TP1,TP_precision)
+    FP = nrow(preds)-TP_precision
+    FP1 <- c(FP1,FP)
+    
+    union <- rbind(preds,gt_df)
+    union <- union[!duplicated(union[, c("Position", "Chromosome", "Strand")]), ]
+    diff <- anti_join(Asites, union, by = c("Position", "Chromosome", "Strand"))
+    TN <- nrow(diff)
+    TN1 <- c(TN1,TN)
+    
+    b <- get.5mer.df(preds)
+    intersection2 <- inner_join(b, gt_df, by = c('Position','Chromosome','Strand'))
+    TP_recall = nrow(intersection2)
+    FN = nrow(gt_df)-TP_recall
+    FN1 <- c(FN1,FN)
+    precision = TP_precision/nrow(preds)
+    precision1 <- c(precision1, precision)
+    recall = TP_recall/nrow(gt_df)
+    recall1 <- c(recall1, recall)
+    F1score = 2*precision*recall/(precision+recall)
+    F1score1 <- c(F1score1,F1score)
+    TPR1 <- c(TPR1, TP_precision/(TP_precision+FN))
+    TNR1 <- c(TNR1, TN/(TN+FP))
+    FPR1 <- c(FPR1, FP/(FP+TN))
+  }
+  plot1 <- data.frame(Cutoff = cutoffs, Rank = rank1, Value = value1, OriginalValue = originalvalue1, TP = TP1, FN = FN1, FP = FP1, TN = TN1, Precision = precision1, Recall = recall1, F1score = F1score1, TPR = TPR1, TNR = TNR1, FPR = FPR1) 
+  return(plot1)
+}  
+```
+
+
+Get trimed.df and draw F1 score
+## trimed.df.op.WT calculated
+```{r}
+dataset.name <- c("Dorado",  "mCaller", "Tombo_denovo", "Tombo_levelcom", "Tombo_modelcom")
+trimed.df.OP <- data.frame()
+
+for (name in dataset.name){
+  print(name)
+  # get file
+  df_WT <- get(name)
+  df_WGA <- get(paste0(name, "_WGA"))
+  if (name == "mCaller" | name == "Dorado"){
+    trimed_temp <-  get.trim.df.LOSTA(df_WT, df_WGA, SMRT)
+    trimed.df.OP <- rbind(trimed.df.OP, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  }
+  else{
+    # Tombo_denovo and Hammerhead, they are ATCG and single mode, shift and 1.2e7 cutoffs
+    trimed_temp <-  get.trim.df.LOSTATCG(df_WT, df_WGA, SMRT)
+    trimed.df.OP <- rbind(trimed.df.OP, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  }
+  rm(trimed_temp)
+  trimed.df.OP[is.na(trimed.df.OP)] <- 0
+}
+  
+
+write.csv(trimed.df.OP,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AOP_WT.trimed.df0430.csv")
+```
+
+## trimed.df.op.MU calculated
+```{r}
+dataset.name <- c("Tombo_levelcom", "Tombo_modelcom","Tombo_denovo", "mCaller", "Dorado")
+trimed.df.OP <- data.frame()
+
+for (name in dataset.name){
+  print(name)
+  # get file
+  df_MU <- get(paste0(name, "_MU"))
+  df_WGA <- get(paste0(name, "_WGA"))
+  if (name == "mCaller" | name == "Dorado"){
+    trimed_temp <-  get.trim.df.LOSTA(df_MU, df_WGA, SMRT_MU)
+    trimed.df.OP <- rbind(trimed.df.OP, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  }
+  else{
+    # Tombo_denovo and Hammerhead, they are ATCG and single mode, shift and 1.2e7 cutoffs
+    trimed_temp <-  get.trim.df.LOSTATCG(df_MU, df_WGA, SMRT_MU)
+    trimed.df.OP <- rbind(trimed.df.OP, data.frame(Tool = name, as.data.frame(trimed_temp)))
+  }
+  rm(trimed_temp)
+  trimed.df.OP[is.na(trimed.df.OP)] <- 0
+}
+  
+
+write.csv(trimed.df.OP,"/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AOP_MU.trimed.df0612.csv")
+```
+
+## plot figures
+### F1 score
+```{R}
+trimed.df.OP <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AOP_WT.trimed.df0430.csv", row.names = 1)
+# plot F1 score curve
+p <- ggplot(trimed.df.OP, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  ggtitle("1448AOP_WT F1 score") +
+  theme_light() +
+  xlab("A sites") +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    # axis.text.x = element_text(family = "Arial", size = 10),
+    # axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578"))
+
+pp <- ggplot(trimed.df.OP, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.5) +
+#  geom_point(size = 0.2, color = "grey") +
+  theme_bw() +
+  theme(legend.position="none")+
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578")) +
+    xlim(0,20000)+
+  xlab("")+
+  ylab("")
+p1 <- p + inset_element(pp, left = 0.3, bottom = 0.3, right = 0.95, top = 0.95) 
+p1
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AOP_WT_f1score.pdf", p1, width = 7, height = 4.5)
+
+
+trimed.df.OP <- read.csv("/Users/lubeifang/Desktop/Benchmark/intermediateFILE/1448AOP_MU.trimed.df0612.csv", row.names = 1)
+
+trimed.df.OP <- trimed.df.OP[trimed.df.OP$Tool != "Nanodisco" & trimed.df.OP$Tool != "Hammerhead",]
+# plot F1 score curve
+p <- ggplot(trimed.df.OP, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.8) +
+  ggtitle("1448AOP_MU F1 score") +
+  theme_light() +
+  xlab("A sites") +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(),
+    # axis.text.x = element_text(family = "Arial", size = 10),
+    # axis.text.y = element_text(family = "Arial", size = 10),
+    legend.position="none"
+  ) +
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578"))
+
+pp <- ggplot(trimed.df.OP, aes(x=Rank, y=F1score, group=Tool, color=Tool))+
+  geom_line(size=0.5) +
+#  geom_point(size = 0.2, color = "grey") +
+  theme_bw() +
+  theme(legend.position="none")+
+  scale_color_manual(values = c("#98B85D","#AC667E","#287c9e","#a9a9a9","#e29578")) +
+    xlim(0,20000)+
+  xlab("")+
+  ylab("")
+p2 <- p + inset_element(pp, left = 0.3, bottom = 0.3, right = 0.95, top = 0.95) 
+p2
+
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AOP_MU_f1score.pdf", p2, width = 7, height = 4.5)
+
+plot <- p1+p2
+ggsave("/Users/lubeifang/Desktop/Benchmark/Figure/F3_trim/1448AOP0612.pdf", plot, width = 10, height = 4.8)
+```
+
+```{R}
+best.df <- data.frame()
+
+trimed.df <- rbind(trimed.df.WT[trimed.df.WT$Tool == "Dorado",],
+                   data.frame(Tool = "Optimized", 
+                              as.data.frame(trimed.df.OP.WT[trimed.df.OP.WT$Tool == "Dorado",][,c(-1)])))
+dataset.name <- c("Dorado", "Optimized")
+# Give a dataframe of best F1 with cutoff
+for (k in dataset.name){
+  # Get the row of best F1 score
+  df.cate <- subset(trimed.df, Tool == k)
+  df.cate <- subset(df.cate,F1score == max(df.cate$F1score))
+  best.df.temp <- df.cate[order(df.cate$OriginalValue, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestF1", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+  # Get the row of best Recall score
+  df.cate <- subset(trimed.df, Tool == k) 
+  df.cate <- subset(df.cate,Recall == max(df.cate$Recall))
+  best.df.temp <- df.cate[order(df.cate$Recall, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestRecall", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+  # Get the row of best Precision score
+  df.cate <- subset(trimed.df, Tool == k) 
+  df.cate <- subset(df.cate,Precision == max(df.cate$Precision))
+  best.df.temp <- df.cate[order(df.cate$Precision, decreasing = F),][1,]
+  best.df.temp <- cbind(Type = "BestPrecision", best.df.temp)
+  best.df <- rbind(best.df, best.df.temp)
+}
+rm(best.df.temp, df.cate)
+```

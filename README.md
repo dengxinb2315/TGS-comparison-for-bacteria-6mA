@@ -9,7 +9,7 @@ Because Oxford Nanopore's basecall model is updated frequently, we recommend usi
 
 ## Code available
 
-**Notes:** The scripts are ordered according to their appearance in the figures
+**Notes:** The scripts are ordered according to their appearance in the figures.
 
 ### Envs
 
