@@ -32,12 +32,18 @@ Optional software:
 | **nanopolish**  | v1.14.1 |conda|
 | **harmmerhead** | 0.1.3   |Pypi|
 
-### Figure 1
+### QC analysis
 
 1. For each sample, we run the commands in [QC.py](main_code/QC.sh). The basecalled **fastq** file and the alignment result (**bam** file) with the reference can be collected,
 while giraffe will help to calculate the estimated features such as Q score and read length.
 2. Python scripts in [Figure_1](Fig1) will help to calculate the yield info and merge all sample's feature file and plot the distribution.
 
-### Figure 2
+### Run all methods
 1. Following the workflow, we executed all the commands for m6A modification detection tools found in [Main_shell](main_code/Nanopore_tools_code)
-2. 
+
+
+### Motif and site analysis
+
+### Outliers analysis
+
+### Showcase and application
