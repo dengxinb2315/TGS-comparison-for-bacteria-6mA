@@ -9,7 +9,7 @@ Oxford Nanopore's basecall model is updated frequently, we recommend using the l
 
 ## Code available
 
-System requirement: Ubuntu 16.04; R version: 4.3.1
+System requirement: Ubuntu 16.04; R version: 4.3.1.
 
 **Notes:** We highly recommend creating a separate conda environment to manage the following software tools.
 
