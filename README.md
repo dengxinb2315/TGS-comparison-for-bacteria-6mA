@@ -34,7 +34,7 @@ Optional software:
 
 ### QC analysis
 
-1. For each sample, we run the commands in [QC.py](main_code/QC.sh). The basecalled **fastq** file and the alignment result (**bam** file) with the reference can be collected,
+1. For each sample, we run the commands in [QC.sh](main_code/QC.sh). The basecalled **fastq** file and the alignment result (**bam** file) with the reference can be collected,
 while giraffe will help to calculate the estimated features such as Q score and read length.
 2. Python scripts in [Figure_1](Fig1) will help to calculate the yield info and merge all sample's feature file and plot the distribution.
 
