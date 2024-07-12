@@ -7,6 +7,10 @@ This GitHub repository contains all the custom scripts and shell commands used i
 ## Data available
 Oxford Nanopore's basecall model is updated frequently, we recommend using the latest basecaller model for re-calling. All raw signal files are uploaded to the NCBI (BIOPROJECT:[PRJNA1119015](https://ncbi.nlm.nih.gov/bioproject/?term=PRJNA1119015)).
 
+For now, the raw sequencing files are suppressed, details can be found [here](http://ftp-trace.ncbi.nlm.nih.gov/sra/review/SRP511146_20240709_121051_f2fc6039cf8effd72bb50da4390115f6). If you need raw files now, please contact xindeng@cityu.edu.hk or beifanglu2-c@my.cityu.edu.hk.
+
+We are pleased to help.
+
 ## Code available
 
 System requirement: Ubuntu 16.04; R version: 4.3.1.
