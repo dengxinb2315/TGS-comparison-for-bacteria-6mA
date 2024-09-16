@@ -117,10 +117,8 @@ Nanodisco <- arrange(Nanodisco, desc(OriginalValue)) %>%
   get.chromosome.name()
 # Dorado+Modkit
 Dorado = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/dorado.bed", header = F)
-Dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWT/dorado.bed", sep = " ", header = F)
-Dorado <- cbind(Dorado[,c(1,3,6)], Dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+Dorado <- Dorado[,c(1,3,6,11)]
 colnames(Dorado) <- c("Chromosome","Position","Strand","OriginalValue")
-rm(Dorado_t)
 Dorado <- arrange(Dorado, desc(OriginalValue)) %>%
   mutate(Rank = row_number())%>%
   get.normalized()%>%
@@ -217,10 +215,8 @@ mCaller_WGA <- arrange(mCaller_WGA, desc(OriginalValue)) %>%
   get.chromosome.name2()
 # Dorado+Modkit
 Dorado_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_Dorado.bed", header = F)
-Dorado_WGA_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/1448AWGA/1448AWGA_Dorado.bed", sep = " ", header = F)
-Dorado_WGA <- cbind(Dorado_WGA[,c(1,3,6)], Dorado_WGA_t[,c(2)]/100) # The OriginalValue is modify fraction
+Dorado_WGA <- Dorado_WGA[,c(1,3,6,11)]
 colnames(Dorado_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
-rm(Dorado_WGA_t)
 Dorado_WGA <- arrange(Dorado_WGA, desc(OriginalValue)) %>%
   mutate(Rank = row_number())%>%
   get.normalized()%>%
