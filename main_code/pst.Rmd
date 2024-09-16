@@ -69,10 +69,8 @@ DC3000_SMRT<- arrange(DC3000_SMRT, desc(OriginalValue)) %>%
 
 # DC3000_dorado+Modkit
 DC3000_dorado = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WT_dorado.bed", header = F)
-DC3000_dorado_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WT_dorado.bed", sep = " ", header = F)
-DC3000_dorado <- cbind(DC3000_dorado[,c(1,3,6)], DC3000_dorado_t[,c(2)]/100) # The OriginalValue is modify fraction
+DC3000_dorado <- DC3000_dorado[,c(1,3,6,11)]
 colnames(DC3000_dorado) <- c("Chromosome","Position","Strand","OriginalValue")
-rm(DC3000_dorado_t)
 DC3000_dorado <- arrange(DC3000_dorado, desc(OriginalValue)) %>%
   mutate(Rank = row_number())%>%
   get.normalized()%>%
@@ -80,10 +78,8 @@ DC3000_dorado <- arrange(DC3000_dorado, desc(OriginalValue)) %>%
 
 # DC3000_dorado+Modkit of WGA
 DC3000_dorado_WGA = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WGA_dorado.bed", header = F)
-DC3000_dorado_WGA_t = fread("/Users/lubeifang/Desktop/Benchmark/DATA/DC3000/DC3000WGA_dorado.bed", sep = " ", header = F)
-DC3000_dorado_WGA <- cbind(DC3000_dorado_WGA[,c(1,3,6)], DC3000_dorado_WGA_t[,c(2)]/100) # The OriginalValue is modify fraction
+DC3000_dorado_WGA <- DC3000_dorado_WGA[,c(1,3,6,11)]
 colnames(DC3000_dorado_WGA) <- c("Chromosome","Position","Strand","OriginalValue")
-rm(DC3000_dorado_WGA_t)
 DC3000_dorado_WGA <- arrange(DC3000_dorado_WGA, desc(OriginalValue)) %>%
   mutate(Rank = row_number())%>%
   get.normalized()%>%
