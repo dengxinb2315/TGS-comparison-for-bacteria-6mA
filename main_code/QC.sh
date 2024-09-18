@@ -1,5 +1,8 @@
 ## run dorado basecaller for each sample
+## For R10.4.1 5kHz
 dorado basecaller dna_r10.4.1_e8.2_400bps_sup@v4.3.0 -r pod5/ > basecall.bam 
+## For R10.4.1 4kHz (ecoli, kp)
+dorado basecaller ../dna_r10.4.1_e8.2_400bps_sup@v4.1.0 -r all.pod5 >  basecall.bam 
 samtools bam2fq basecall.bam>final.fastq
 
 ## run giraffe 
