@@ -10,7 +10,7 @@ giraffe estimate --input  final.fastq --cpu 64
 giraffe observe --input  final.fastq --cpu 64 --ref ./1448a.fasta
 
 ## run minimap2
-minimap2 --MD -t 32 -ax map-ont 1448a.fasta.fasta final.fastq | samtools view -hbS -F 32 - | samtools sort -@ 32 -o genomic.bam 
+minimap2 --MD -t 32 -ax map-ont 1448a.fasta.fasta final.fastq | samtools view -hbS -F 3844 - | samtools sort -@ 32 -o genomic.bam 
 samtools index genomic.bam
 
 ## run samtools depth
